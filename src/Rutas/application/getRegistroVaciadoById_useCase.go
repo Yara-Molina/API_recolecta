@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
 )
@@ -13,6 +15,6 @@ func NewGetRegistroVaciadoByIDUseCase(repo ports.RegistroVaciadoRepository) *Get
 	return &GetRegistroVaciadoByIDUseCase{repo: repo}
 }
 
-func (uc *GetRegistroVaciadoByIDUseCase) Execute(id int32) (*entities.RegistroVaciado, error) {
-	return uc.repo.GetByID(id)
+func (uc *GetRegistroVaciadoByIDUseCase) Execute(ctx context.Context, tenantID int, id int32) (*entities.RegistroVaciado, error) {
+	return uc.repo.GetByID(ctx, tenantID, id)
 }

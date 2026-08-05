@@ -1,10 +1,11 @@
 package application
 
 import (
+	"context"
+
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
 )
-
 
 type GetByIdEstadoCamionUseCase struct {
 	IEstadoCamion ports.IEstadoCamion
@@ -16,8 +17,8 @@ func NewGetByIdEstadoCamionUseCase(IEstadoCamion ports.IEstadoCamion) *GetByIdEs
 	}
 }
 
-func (uc *GetByIdEstadoCamionUseCase) Run(id int32) (*entities.EstadoCamion, error){
-	estadoCamion, err := uc.IEstadoCamion.GetById(id)
+func (uc *GetByIdEstadoCamionUseCase) Run(ctx context.Context, tenantID int, id int32) (*entities.EstadoCamion, error) {
+	estadoCamion, err := uc.IEstadoCamion.GetById(ctx, tenantID, id)
 
 	if err != nil {
 		return nil, err

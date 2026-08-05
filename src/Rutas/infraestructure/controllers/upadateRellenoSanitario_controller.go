@@ -29,6 +29,12 @@ func NewUpdateRellenoSanitarioController(uc *application.UpdateRellenoSanitarioU
 // @Security     BearerAuth
 // @Router       /api/relleno-sanitario/{id} [put]
 func (c *UpdateRellenoSanitarioController) Execute(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondInvalidInput(ctx, "ID inválido")
@@ -41,7 +47,7 @@ func (c *UpdateRellenoSanitarioController) Execute(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.uc.Execute(int32(id), &relleno)
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID, int32(id), &relleno)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error actualizando relleno sanitario", err)
 		return

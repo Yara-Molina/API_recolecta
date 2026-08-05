@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/vicpoo/API_recolecta/src/Camion/infrastructure/controllers"
+	"github.com/vicpoo/API_recolecta/src/core"
 )
 
 type HistorialAsignacionCamionRoutes struct {
@@ -61,6 +62,11 @@ func NewHistorialAsignacionCamionRoutes(
 
 func (r *HistorialAsignacionCamionRoutes) Run() {
 	routes := r.engine.Group("/api/historial-asignacion")
+	// Hallazgo docs/10-plan-completar-multitenancy.md (Fase B): estas rutas no
+	// tenian JWTAuthMiddleware -- estaban abiertas sin token. Se confirmo que
+	// frontend/map-view ya mandan Authorization: Bearer en cada llamada (via
+	// su apiRequest) antes de agregar esto, para no romper clientes existentes.
+	routes.Use(core.JWTAuthMiddleware())
 	{
 		// CRUD
 		routes.POST("/", r.createController.Run)

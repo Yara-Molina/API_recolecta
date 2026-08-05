@@ -1,6 +1,10 @@
 package application
 
-import "github.com/vicpoo/API_recolecta/src/Camion/domain/ports"
+import (
+	"context"
+
+	"github.com/vicpoo/API_recolecta/src/Camion/domain/ports"
+)
 
 type DeleteHistorialAsignacionCamionUseCase struct {
 	repo ports.IHistorialAsignacionCamion
@@ -8,10 +12,10 @@ type DeleteHistorialAsignacionCamionUseCase struct {
 
 func NewDeleteHistorialAsignacionCamionUseCase(repo ports.IHistorialAsignacionCamion) *DeleteHistorialAsignacionCamionUseCase {
 	return &DeleteHistorialAsignacionCamionUseCase{
-		repo: repo, 
+		repo: repo,
 	}
 }
 
-func (uc *DeleteHistorialAsignacionCamionUseCase) Run(id int32) error {
-	return uc.repo.Delete(id)
+func (uc *DeleteHistorialAsignacionCamionUseCase) Run(ctx context.Context, tenantID int, id int32) error {
+	return uc.repo.Delete(ctx, tenantID, id)
 }

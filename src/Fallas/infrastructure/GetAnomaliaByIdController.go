@@ -28,6 +28,12 @@ func NewGetAnomaliaByIdController(getByIdUseCase *application.GetAnomaliaByIdUse
 // @Security     BearerAuth
 // @Router       /api/anomalias/{id} [get]
 func (ctrl *GetAnomaliaByIdController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -35,7 +41,7 @@ func (ctrl *GetAnomaliaByIdController) Run(c *gin.Context) {
 		return
 	}
 
-	anomalia, err := ctrl.getByIdUseCase.Run(int32(id))
+	anomalia, err := ctrl.getByIdUseCase.Run(c.Request.Context(), tenantID, int32(id))
 	if err != nil {
 		// Verificar si es un error de "no encontrado"
 		if err.Error() == "anomalia not found" || anomalia == nil {

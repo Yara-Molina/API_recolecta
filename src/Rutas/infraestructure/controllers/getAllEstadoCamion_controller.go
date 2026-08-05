@@ -26,7 +26,13 @@ func NewGetAllEstadoCamionController(
 // @Security     BearerAuth
 // @Router       /api/estado-camion/ [get]
 func (ctr *GetAllEstadoCamionController) Run(ctx *gin.Context) {
-	estadosCamion, err := ctr.uc.Run()
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
+	estadosCamion, err := ctr.uc.Run(ctx.Request.Context(), tenantID)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "No se pudieron obtener los estados del camión", err)
 		return

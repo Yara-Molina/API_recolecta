@@ -1,6 +1,10 @@
 package application
 
-import "github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
+import (
+	"context"
+
+	"github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
+)
 
 type ListAllPuntoRecoleccionUseCase struct {
 	repo ports.IPuntoRecoleccion
@@ -10,6 +14,6 @@ func NewListAllPuntoRecoleccionUseCase(repo ports.IPuntoRecoleccion) *ListAllPun
 	return &ListAllPuntoRecoleccionUseCase{repo: repo}
 }
 
-func (uc *ListAllPuntoRecoleccionUseCase) Execute() (interface{}, error) {
-	return uc.repo.ListAll()
+func (uc *ListAllPuntoRecoleccionUseCase) Execute(ctx context.Context, tenantID int) (interface{}, error) {
+	return uc.repo.ListAll(ctx, tenantID)
 }

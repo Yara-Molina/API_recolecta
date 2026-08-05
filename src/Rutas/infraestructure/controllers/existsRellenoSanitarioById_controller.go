@@ -28,13 +28,19 @@ func NewExistsRellenoSanitarioByIdController(
 // @Security     BearerAuth
 // @Router       /api/relleno-sanitario/exists/{id} [get]
 func (c *ExistsRellenoSanitarioByIdController) Execute(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondInvalidInput(ctx, "ID inválido")
 		return
 	}
 
-	exists, err := c.uc.Execute(int32(id))
+	exists, err := c.uc.Execute(ctx.Request.Context(), tenantID, int32(id))
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error verificando existencia de relleno sanitario", err)
 		return

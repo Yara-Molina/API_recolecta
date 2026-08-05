@@ -29,7 +29,7 @@ func NewCreateEmpleado(repo domain.EmpleadoRepository) *CreateEmpleado {
 	return &CreateEmpleado{repo: repo}
 }
 
-func (uc *CreateEmpleado) Execute(ctx context.Context, in CreateEmpleadoInput) (*entities.Empleado, error) {
+func (uc *CreateEmpleado) Execute(ctx context.Context, tenantID int, in CreateEmpleadoInput) (*entities.Empleado, error) {
 	in.Nombre = strings.TrimSpace(in.Nombre)
 	in.Apellidos = strings.TrimSpace(in.Apellidos)
 	in.Mail = strings.TrimSpace(strings.ToLower(in.Mail))
@@ -88,10 +88,10 @@ func (uc *CreateEmpleado) Execute(ctx context.Context, in CreateEmpleadoInput) (
 		UpdatedAt:   time.Now(),
 	}
 
-	id, err := uc.repo.Create(ctx, empleado)
+	id, err := uc.repo.Create(ctx, tenantID, empleado)
 	if err != nil {
 		return nil, err
 	}
 
-	return uc.repo.GetByID(ctx, id)
+	return uc.repo.GetByID(ctx, tenantID, id)
 }

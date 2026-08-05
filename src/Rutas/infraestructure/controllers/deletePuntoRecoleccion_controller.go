@@ -28,6 +28,12 @@ func NewDeletePuntoRecoleccionController(uc *application.DeletePuntoRecoleccionU
 // @Security     BearerAuth
 // @Router       /api/puntos-recoleccion/{id} [delete]
 func (c *DeletePuntoRecoleccionController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 
@@ -36,7 +42,7 @@ func (c *DeletePuntoRecoleccionController) Run(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.uc.Execute(int32(id)); err != nil {
+	if err := c.uc.Execute(ctx.Request.Context(), tenantID, int32(id)); err != nil {
 		if strings.Contains(err.Error(), "no encontrado") {
 			core.RespondNotFound(ctx, "Punto de recolección", idStr)
 		} else {

@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"errors"
 
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
@@ -42,10 +43,10 @@ func (uc *SaveCamionUseCase) validate(c *entities.Camion) error {
 	return nil
 }
 
-func (uc *SaveCamionUseCase) Run(c *entities.Camion) (*entities.Camion, error) {
+func (uc *SaveCamionUseCase) Run(ctx context.Context, tenantID int, c *entities.Camion) (*entities.Camion, error) {
 	if err := uc.validate(c); err != nil {
 		return nil, err
 	}
 
-	return uc.repo.Save(c)
+	return uc.repo.Save(ctx, tenantID, c)
 }

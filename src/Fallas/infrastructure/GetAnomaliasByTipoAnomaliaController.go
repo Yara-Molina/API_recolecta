@@ -28,6 +28,12 @@ func NewGetAnomaliasByTipoAnomaliaController(getByTipoAnomaliaUseCase *applicati
 // @Security     BearerAuth
 // @Router       /api/anomalias/tipo [get]
 func (ctrl *GetAnomaliasByTipoAnomaliaController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	tipoAnomaliaStr := c.Query("tipo_anomalia")
 	if tipoAnomaliaStr == "" {
 		core.RespondValidationError(c, "Parámetro de tipo_anomalia inválido", map[string]string{"tipo_anomalia": "requerido"})
@@ -40,7 +46,7 @@ func (ctrl *GetAnomaliasByTipoAnomaliaController) Run(c *gin.Context) {
 		return
 	}
 
-	anomalias, err := ctrl.getByTipoAnomaliaUseCase.Run(tipoAnomalia)
+	anomalias, err := ctrl.getByTipoAnomaliaUseCase.Run(c.Request.Context(), tenantID, tipoAnomalia)
 	if err != nil {
 		core.RespondInternalServerError(c, "No se pudieron obtener las anomalías por tipo", err)
 		return

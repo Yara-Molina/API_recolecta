@@ -27,13 +27,19 @@ func NewDeleteEmpleadoController(useCase *application.DeleteEmpleado) *DeleteEmp
 // @Failure      404 {object} core.ErrorResponse
 // @Router       /api/empleados/{id} [delete]
 func (c *DeleteEmpleadoController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondBadRequest(ctx, "id inválido", nil)
 		return
 	}
 
-	if err := c.useCase.Execute(ctx.Request.Context(), id); err != nil {
+	if err := c.useCase.Execute(ctx.Request.Context(), tenantID, id); err != nil {
 		if err.Error() == "empleado no encontrado" {
 			core.RespondNotFound(ctx, "empleado", strconv.Itoa(id))
 			return

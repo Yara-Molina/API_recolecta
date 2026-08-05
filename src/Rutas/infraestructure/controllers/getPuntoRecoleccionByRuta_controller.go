@@ -26,6 +26,12 @@ func NewGetPuntoRecoleccionByRutaController(uc *application.GetPuntoRecoleccionB
 // @Security     BearerAuth
 // @Router       /api/puntos-recoleccion/ruta/{rutaId} [get]
 func (c *GetPuntoRecoleccionByRutaController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	rutaStr := ctx.Param("rutaId")
 	rutaId, err := strconv.Atoi(rutaStr)
 
@@ -34,7 +40,7 @@ func (c *GetPuntoRecoleccionByRutaController) Run(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.uc.Execute(int32(rutaId))
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID, int32(rutaId))
 	if err != nil {
 		core.RespondInternalServerError(ctx, "No se pudieron obtener los puntos de recolección por ruta", err)
 		return

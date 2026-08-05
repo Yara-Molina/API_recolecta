@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"github.com/vicpoo/API_recolecta/src/Camion/domain/entities"
 	"github.com/vicpoo/API_recolecta/src/Camion/domain/ports"
 )
@@ -15,8 +17,8 @@ func NewSaveHistorialAsignacionCamionUseCase(repo ports.IHistorialAsignacionCami
 	}
 }
 
-func (uc *SaveHistorialAsignacionCamionUseCase) Run(historial *entities.HistorialAsignacionCamion) (*entities.HistorialAsignacionCamion, error){
-	historial, err := uc.repo.Save(historial)
+func (uc *SaveHistorialAsignacionCamionUseCase) Run(ctx context.Context, tenantID int, historial *entities.HistorialAsignacionCamion) (*entities.HistorialAsignacionCamion, error) {
+	historial, err := uc.repo.Save(ctx, tenantID, historial)
 
 	if err != nil {
 		return nil, err

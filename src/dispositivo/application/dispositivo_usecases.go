@@ -18,7 +18,7 @@ func NewDispositivoUseCases(repo domain.DispositivoRepository) *DispositivoUseCa
 }
 
 // Solicitar genera una API Key segura, registra la solicitud de vinculación del dispositivo y retorna la clave.
-func (uc *DispositivoUseCases) Solicitar(ctx context.Context, conductorID int, req entities.SolicitarDispositivoRequest) (string, error) {
+func (uc *DispositivoUseCases) Solicitar(ctx context.Context, tenantID int, conductorID int, req entities.SolicitarDispositivoRequest) (string, error) {
 	apiKey, err := generateAPIKey()
 	if err != nil {
 		return "", err
@@ -32,7 +32,7 @@ func (uc *DispositivoUseCases) Solicitar(ctx context.Context, conductorID int, r
 		NombreDispositivo: req.NombreDispositivo,
 	}
 
-	err = uc.repo.Solicitar(ctx, d)
+	err = uc.repo.Solicitar(ctx, tenantID, d)
 	if err != nil {
 		return "", err
 	}
@@ -40,24 +40,24 @@ func (uc *DispositivoUseCases) Solicitar(ctx context.Context, conductorID int, r
 	return apiKey, nil
 }
 
-func (uc *DispositivoUseCases) FindByConductorID(ctx context.Context, conductorID int) (*entities.Dispositivo, error) {
-	return uc.repo.FindByConductorID(ctx, conductorID)
+func (uc *DispositivoUseCases) FindByConductorID(ctx context.Context, tenantID int, conductorID int) (*entities.Dispositivo, error) {
+	return uc.repo.FindByConductorID(ctx, tenantID, conductorID)
 }
 
-func (uc *DispositivoUseCases) Aprobar(ctx context.Context, conductorID int) error {
-	return uc.repo.Aprobar(ctx, conductorID)
+func (uc *DispositivoUseCases) Aprobar(ctx context.Context, tenantID int, conductorID int) error {
+	return uc.repo.Aprobar(ctx, tenantID, conductorID)
 }
 
-func (uc *DispositivoUseCases) Desvincular(ctx context.Context, conductorID int) error {
-	return uc.repo.Desvincular(ctx, conductorID)
+func (uc *DispositivoUseCases) Desvincular(ctx context.Context, tenantID int, conductorID int) error {
+	return uc.repo.Desvincular(ctx, tenantID, conductorID)
 }
 
-func (uc *DispositivoUseCases) ListarPendientes(ctx context.Context) ([]*entities.DispositivoConductorResponse, error) {
-	return uc.repo.ListarPendientes(ctx)
+func (uc *DispositivoUseCases) ListarPendientes(ctx context.Context, tenantID int) ([]*entities.DispositivoConductorResponse, error) {
+	return uc.repo.ListarPendientes(ctx, tenantID)
 }
 
-func (uc *DispositivoUseCases) ListarActivos(ctx context.Context) ([]*entities.DispositivoConductorResponse, error) {
-	return uc.repo.ListarActivos(ctx)
+func (uc *DispositivoUseCases) ListarActivos(ctx context.Context, tenantID int) ([]*entities.DispositivoConductorResponse, error) {
+	return uc.repo.ListarActivos(ctx, tenantID)
 }
 
 // generateAPIKey crea una clave aleatoria de 256 bits (64 caracteres hexadecimales)

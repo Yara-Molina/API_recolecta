@@ -32,7 +32,7 @@ func NewCreateDomicilio(repo domain.DomicilioRepository) *CreateDomicilio {
 	return &CreateDomicilio{repo: repo}
 }
 
-func (uc *CreateDomicilio) Execute(ctx context.Context, in CreateDomicilioInput) (int, error) {
+func (uc *CreateDomicilio) Execute(ctx context.Context, tenantID int, in CreateDomicilioInput) (int, error) {
 	in.Alias = strings.TrimSpace(in.Alias)
 	in.Calle = strings.TrimSpace(in.Calle)
 	in.Numero = strings.TrimSpace(in.Numero)
@@ -53,7 +53,7 @@ func (uc *CreateDomicilio) Execute(ctx context.Context, in CreateDomicilioInput)
 		return 0, errors.New("numero es requerido")
 	}
 
-	existingByAlias, err := uc.repo.FindByAlias(ctx, in.Alias, in.CiudadanoID)
+	existingByAlias, err := uc.repo.FindByAlias(ctx, tenantID, in.Alias, in.CiudadanoID)
 	if err != nil {
 		return 0, err
 	}
@@ -71,7 +71,7 @@ func (uc *CreateDomicilio) Execute(ctx context.Context, in CreateDomicilioInput)
 		CreatedAt:   time.Now(),
 	}
 
-	id, err := uc.repo.Create(ctx, d)
+	id, err := uc.repo.Create(ctx, tenantID, d)
 	if err != nil {
 		return 0, err
 	}

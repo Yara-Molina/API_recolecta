@@ -31,6 +31,12 @@ func NewUpdateAnomaliaController(updateUseCase *application.UpdateAnomaliaUseCas
 // @Security     BearerAuth
 // @Router       /api/anomalias/{id} [put]
 func (ctrl *UpdateAnomaliaController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -113,7 +119,7 @@ func (ctrl *UpdateAnomaliaController) Run(c *gin.Context) {
 		FechaResolucion:      fechaResolucionPtr,
 	}
 
-	updatedAnomalia, err := ctrl.updateUseCase.Run(anomalia)
+	updatedAnomalia, err := ctrl.updateUseCase.Run(c.Request.Context(), tenantID, anomalia)
 	if err != nil {
 		if err.Error() == "anomalia not found" {
 			core.RespondNotFound(c, "Anomalía", idParam)

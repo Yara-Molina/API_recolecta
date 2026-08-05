@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
 )
@@ -13,6 +15,6 @@ func NewGetRellenoSanitarioByIdUseCase(repo ports.RellenoSanitarioRepository) *G
 	return &GetRellenoSanitarioByIdUseCase{repo}
 }
 
-func (uc *GetRellenoSanitarioByIdUseCase) Execute(id int32) (*entities.RellenoSanitario, error) {
-	return uc.repo.GetByID(id)
+func (uc *GetRellenoSanitarioByIdUseCase) Execute(ctx context.Context, tenantID int, id int32) (*entities.RellenoSanitario, error) {
+	return uc.repo.GetByID(ctx, tenantID, id)
 }

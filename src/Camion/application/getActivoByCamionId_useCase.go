@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"github.com/vicpoo/API_recolecta/src/Camion/domain/entities"
 	"github.com/vicpoo/API_recolecta/src/Camion/domain/ports"
 )
@@ -13,6 +15,6 @@ func NewGetActivoByCamionUseCase(repo ports.IHistorialAsignacionCamion) *GetActi
 	return &GetActivoByCamionUseCase{repo: repo}
 }
 
-func (uc *GetActivoByCamionUseCase) Run(camionId int32) (*entities.HistorialAsignacionCamion, error) {
-	return uc.repo.GetActivoByCamionId(camionId)
+func (uc *GetActivoByCamionUseCase) Run(ctx context.Context, tenantID int, camionId int32) (*entities.HistorialAsignacionCamion, error) {
+	return uc.repo.GetActivoByCamionId(ctx, tenantID, camionId)
 }

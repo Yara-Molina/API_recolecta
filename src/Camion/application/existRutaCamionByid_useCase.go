@@ -1,6 +1,10 @@
 package application
 
-import "github.com/vicpoo/API_recolecta/src/Camion/domain/ports"
+import (
+	"context"
+
+	"github.com/vicpoo/API_recolecta/src/Camion/domain/ports"
+)
 
 type ExistsRutaCamionByIDUseCase struct {
 	repo ports.RutaCamionRepository
@@ -10,6 +14,6 @@ func NewExistsRutaCamionByIDUseCase(repo ports.RutaCamionRepository) *ExistsRuta
 	return &ExistsRutaCamionByIDUseCase{repo: repo}
 }
 
-func (uc *ExistsRutaCamionByIDUseCase) Execute(id int32) (bool, error) {
-	return uc.repo.ExistsByID(id)
+func (uc *ExistsRutaCamionByIDUseCase) Execute(ctx context.Context, tenantID int, id int32) (bool, error) {
+	return uc.repo.ExistsByID(ctx, tenantID, id)
 }

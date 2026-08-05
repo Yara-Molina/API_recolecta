@@ -26,8 +26,8 @@ func NewUpdateDomicilio(repo domain.DomicilioRepository) *UpdateDomicilio {
 	return &UpdateDomicilio{repo: repo}
 }
 
-func (uc *UpdateDomicilio) Execute(ctx context.Context, in UpdateDomicilioInput) error {
-	d, err := uc.repo.GetByID(ctx, in.ID)
+func (uc *UpdateDomicilio) Execute(ctx context.Context, tenantID int, in UpdateDomicilioInput) error {
+	d, err := uc.repo.GetByID(ctx, tenantID, in.ID)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (uc *UpdateDomicilio) Execute(ctx context.Context, in UpdateDomicilioInput)
 			return errors.New("alias inválido")
 		}
 
-		existing, err := uc.repo.FindByAlias(ctx, alias, d.CiudadanoID)
+		existing, err := uc.repo.FindByAlias(ctx, tenantID, alias, d.CiudadanoID)
 		if err != nil {
 			return err
 		}
@@ -80,5 +80,5 @@ func (uc *UpdateDomicilio) Execute(ctx context.Context, in UpdateDomicilioInput)
 		d.Referencia = &ref
 	}
 
-	return uc.repo.Update(ctx, d)
+	return uc.repo.Update(ctx, tenantID, d)
 }

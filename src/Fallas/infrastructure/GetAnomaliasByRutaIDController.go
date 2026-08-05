@@ -28,6 +28,12 @@ func NewGetAnomaliasByRutaIDController(getByRutaIDUseCase *application.GetAnomal
 // @Security     BearerAuth
 // @Router       /api/anomalias/ruta/{rutaId} [get]
 func (ctrl *GetAnomaliasByRutaIDController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	rutaIDParam := c.Param("rutaId")
 	rutaID, err := strconv.Atoi(rutaIDParam)
 	if err != nil {
@@ -35,7 +41,7 @@ func (ctrl *GetAnomaliasByRutaIDController) Run(c *gin.Context) {
 		return
 	}
 
-	anomalias, err := ctrl.getByRutaIDUseCase.Run(int32(rutaID))
+	anomalias, err := ctrl.getByRutaIDUseCase.Run(c.Request.Context(), tenantID, int32(rutaID))
 	if err != nil {
 		core.RespondInternalServerError(c, "No se pudieron obtener las anomalías para la ruta", err)
 		return

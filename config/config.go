@@ -23,13 +23,17 @@ func LoadConfig() (*Config, error) {
 		// real (mismo compose stack). Si no estan seteadas, caen a esos defaults.
 		ModeloReportesURL: getEnvOrDefault("MODELO_REPORTES_URL", "http://modelo_reportes:8000"),
 		ClasificadorURL:   getEnvOrDefault("CLASIFICADOR_URL", "http://clasificador_reportes:8001"),
-		// Webhook externo (equipo del algoritmo genetico de rutas) que se
-		// notifica cuando se crea una anomalia con coordenadas. Todavia no
-		// esta desplegado en ningun ambiente real -- por eso el default cae a
-		// localhost:8004. Cuando lo desplieguen, solo hay que setear esta
-		// variable de entorno (aqui y en docker-compose/.env de prod), no
-		// tocar codigo.
-		AnomaliaCreadaWebhookURL: getEnvOrDefault("ANOMALIA_CREADA_WEBHOOK_URL", "http://localhost:8004/anomalia_creada"),
+		// Webhook externo: servicio api-rutas (Node.js, equipo de rutas/AG) que
+		// se notifica cuando se crea una anomalia con coordenadas. Verificado
+		// en produccion (GET /health -> {"status":"ok"} en
+		// https://api-rutas.practicasoftware.fun) -- ya no es localhost:8004.
+		// api-rutas es quien internamente consulta sus rutas/puntos, llama al
+		// algoritmo genetico de rutas (AG, https://ag.practicasoftware.fun) y
+		// notifica a los conductores por su propio servicio de WebSocket
+		// (wss://websocket.practicasoftware.fun); gin-backend no necesita
+		// hablar con el AG ni con ese WebSocket directamente. Ver
+		// docs/implementacion-fix-anomalias-y-ag.md.
+		AnomaliaCreadaWebhookURL: getEnvOrDefault("ANOMALIA_CREADA_WEBHOOK_URL", "https://api-rutas.practicasoftware.fun/anomalia_creada"),
 	}
 	// Aqui se pueden anadir validaciones (ej. que no esten vacios)
 	return cfg, nil

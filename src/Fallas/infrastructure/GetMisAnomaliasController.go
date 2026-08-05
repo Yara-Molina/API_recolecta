@@ -36,6 +36,12 @@ func NewGetMisAnomaliasController(porConductorUC *application.GetAnomaliasByCond
 // @Security     BearerAuth
 // @Router       /api/anomalias/mis-reportes [get]
 func (ctrl *GetMisAnomaliasController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	roleID := c.GetInt("role_id")
 	userID := int32(c.GetInt("user_id"))
 
@@ -46,9 +52,9 @@ func (ctrl *GetMisAnomaliasController) Run(c *gin.Context) {
 
 	switch roleID {
 	case core.CIUDADANO:
-		anomalias, err = ctrl.porCiudadanoUC.Run(userID)
+		anomalias, err = ctrl.porCiudadanoUC.Run(c.Request.Context(), tenantID, userID)
 	case core.CONDUCTOR:
-		anomalias, err = ctrl.porConductorUC.Run(userID)
+		anomalias, err = ctrl.porConductorUC.Run(c.Request.Context(), tenantID, userID)
 	default:
 		core.RespondBadRequest(c, "Este endpoint es para ciudadano o conductor. Staff debe usar los listados generales.", nil)
 		return

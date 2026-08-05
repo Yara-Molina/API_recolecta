@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
 )
@@ -16,7 +18,9 @@ func NewGetRellenoSanitarioByNombreUseCase(
 }
 
 func (uc *GetRellenoSanitarioByNombreUseCase) Execute(
+	ctx context.Context,
+	tenantID int,
 	nombre string,
 ) ([]entities.RellenoSanitario, error) {
-	return uc.repo.GetByNombre(nombre)
+	return uc.repo.GetByNombre(ctx, tenantID, nombre)
 }

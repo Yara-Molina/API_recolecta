@@ -28,6 +28,12 @@ func NewGetAnomaliasByPuntoIDController(getByPuntoIDUseCase *application.GetAnom
 // @Security     BearerAuth
 // @Router       /api/anomalias/punto/{puntoId} [get]
 func (ctrl *GetAnomaliasByPuntoIDController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	puntoIDParam := c.Param("puntoId")
 	puntoID, err := strconv.Atoi(puntoIDParam)
 	if err != nil {
@@ -35,7 +41,7 @@ func (ctrl *GetAnomaliasByPuntoIDController) Run(c *gin.Context) {
 		return
 	}
 
-	anomalias, err := ctrl.getByPuntoIDUseCase.Run(int32(puntoID))
+	anomalias, err := ctrl.getByPuntoIDUseCase.Run(c.Request.Context(), tenantID, int32(puntoID))
 	if err != nil {
 		core.RespondInternalServerError(c, "No se pudieron obtener las anomalías para el punto", err)
 		return

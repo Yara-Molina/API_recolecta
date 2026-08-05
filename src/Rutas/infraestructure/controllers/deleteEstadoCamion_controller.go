@@ -32,6 +32,12 @@ func NewDeleteEstadoCamionController(
 // @Security     BearerAuth
 // @Router       /api/estado-camion/{id} [delete]
 func (ctr *DeleteEstadoCamionController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	idParam := ctx.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil || id <= 0 {
@@ -39,7 +45,7 @@ func (ctr *DeleteEstadoCamionController) Run(ctx *gin.Context) {
 		return
 	}
 
-	if err := ctr.uc.Run(int32(id)); err != nil {
+	if err := ctr.uc.Run(ctx.Request.Context(), tenantID, int32(id)); err != nil {
 		if strings.Contains(err.Error(), "no encontrado") {
 			core.RespondNotFound(ctx, "Estado de camión", idParam)
 		} else {

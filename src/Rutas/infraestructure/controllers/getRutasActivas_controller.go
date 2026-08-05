@@ -25,7 +25,13 @@ func NewGetRutaActivasController(uc *application.GetRutaActivasUseCase) *GetRuta
 // @Security     BearerAuth
 // @Router       /api/rutas/activas [get]
 func (ctr *GetRutaActivasController) Run(ctx *gin.Context) {
-	rutas, err := ctr.uc.Run()
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
+	rutas, err := ctr.uc.Run(ctx.Request.Context(), tenantID)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error listando rutas activas", err)
 		return

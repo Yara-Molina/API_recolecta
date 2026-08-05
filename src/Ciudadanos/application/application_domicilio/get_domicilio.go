@@ -15,6 +15,6 @@ func NewGetDomicilio(repo domain.DomicilioRepository) *GetDomicilio {
 	return &GetDomicilio{repo: repo}
 }
 
-func (uc *GetDomicilio) Execute(ctx context.Context, id int) (*entities.Domicilio, error) {
-	return uc.repo.GetByID(ctx, id)
+func (uc *GetDomicilio) Execute(ctx context.Context, tenantID int, id int) (*entities.Domicilio, error) {
+	return uc.repo.GetByID(ctx, tenantID, id)
 }

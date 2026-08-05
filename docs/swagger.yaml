@@ -74,6 +74,19 @@ definitions:
       error:
         $ref: '#/definitions/core.ErrorDetail'
     type: object
+  domain.AdminInicialInput:
+    properties:
+      apellidos:
+        type: string
+      mail:
+        type: string
+      nombre:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
   domain.AlertaUsuario:
     properties:
       alerta_id:
@@ -125,12 +138,91 @@ definitions:
     - nombre
     - zona
     type: object
+  domain.CreateTenantRequest:
+    properties:
+      admin:
+        $ref: '#/definitions/domain.AdminInicialInput'
+      bbox_max_lat:
+        type: number
+      bbox_max_lon:
+        type: number
+      bbox_min_lat:
+        type: number
+      bbox_min_lon:
+        type: number
+      logo_url:
+        type: string
+      nombre:
+        type: string
+    type: object
   domain.SendResult:
     properties:
       error:
         type: string
       success:
         type: boolean
+    type: object
+  domain.Tenant:
+    properties:
+      activo:
+        type: boolean
+      bbox_max_lat:
+        type: number
+      bbox_max_lon:
+        type: number
+      bbox_min_lat:
+        type: number
+      bbox_min_lon:
+        type: number
+      created_at:
+        type: string
+      logo_url:
+        type: string
+      nombre:
+        type: string
+      tenant_id:
+        type: integer
+    type: object
+  domain.TenantListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/domain.Tenant'
+        type: array
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  domain.TenantResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/domain.Tenant'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  domain.UpdateTenantRequest:
+    properties:
+      activo:
+        type: boolean
+      bbox_max_lat:
+        type: number
+      bbox_max_lon:
+        type: number
+      bbox_min_lat:
+        type: number
+      bbox_min_lon:
+        type: number
+      logo_url:
+        type: string
+      nombre:
+        type: string
     type: object
   entities.Anomalia:
     properties:
@@ -975,11 +1067,12 @@ definitions:
   entities.Ruta:
     properties:
       conductor_id:
-        description: ID del conductor asignado (null si no hay asignación activa).
-          Solo se llena en GET /api/rutas/activas.
+        description: |-
+          ConductorID es el id_chofer con asignación activa (historial_asignacion_camion)
+          del camión actualmente asignado a la ruta (ruta_camion). Solo lo llena GetActivas.
+          swagger:description ID del conductor asignado (null si no hay asignación activa)
         example: 12
         type: integer
-        x-nullable: true
       created_at:
         type: string
       descripcion:
@@ -1000,11 +1093,11 @@ definitions:
   entities.RutaActivaItem:
     properties:
       conductor_id:
-        description: ID del empleado chofer con asignación activa (fecha_baja IS
-          NULL) del camión más reciente de la ruta. Null si no hay asignación.
+        description: |-
+          ID del empleado chofer con asignación activa (fecha_baja IS NULL)
+          del camión más reciente de la ruta. Null si no hay asignación.
         example: 12
         type: integer
-        x-nullable: true
       created_at:
         example: "2026-07-22T19:30:00Z"
         type: string
@@ -4814,9 +4907,9 @@ paths:
   /api/rutas/activas:
     get:
       description: 'Devuelve rutas no eliminadas. Cada item incluye conductor_id:
-        id_chofer con asignación activa (historial_asignacion_camion.fecha_baja
-        IS NULL) del camión más reciente en ruta_camion. Es null si no hay camión
-        o chofer asignado.'
+        id_chofer con asignación activa (historial_asignacion_camion.fecha_baja IS
+        NULL) del camión más reciente en ruta_camion. Es null si no hay camión o chofer
+        asignado.'
       produces:
       - application/json
       responses:
@@ -4888,6 +4981,119 @@ paths:
       summary: Procesar arribo de camión a parada
       tags:
       - Ruta
+  /api/tenants:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.TenantListResponse'
+      security:
+      - BearerAuth: []
+      summary: Listar tenants
+      tags:
+      - Tenant
+    post:
+      consumes:
+      - application/json
+      description: Crea un tenant nuevo junto con su primer empleado (rol ADMIN).
+        Solo SUPERADMIN.
+      parameters:
+      - description: Body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateTenantRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.TenantResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/core.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear tenant (municipio) con su admin inicial
+      tags:
+      - Tenant
+  /api/tenants/{id}:
+    get:
+      parameters:
+      - description: ID del tenant
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.TenantResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener tenant por ID
+      tags:
+      - Tenant
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID del tenant
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateTenantRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.TenantResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar tenant (nombre, activo, logo, área de cobertura)
+      tags:
+      - Tenant
   /api/tipo-camion/:
     get:
       produces:

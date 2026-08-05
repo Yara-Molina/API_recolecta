@@ -22,7 +22,13 @@ func NewGetAllPuntoRecoleccionController(uc *application.ListAllPuntoRecoleccion
 // @Security     BearerAuth
 // @Router       /api/puntos-recoleccion/ [get]
 func (c *GetAllPuntoRecoleccionController) Run(ctx *gin.Context) {
-	result, err := c.uc.Execute()
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "No se pudieron obtener los puntos de recolección", err)
 		return

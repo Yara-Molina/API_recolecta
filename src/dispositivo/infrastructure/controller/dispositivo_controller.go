@@ -30,6 +30,12 @@ func NewDispositivoController(useCases *application.DispositivoUseCases) *Dispos
 // @Security     BearerAuth
 // @Router       /api/dispositivos/solicitar [post]
 func (ctr *DispositivoController) Solicitar(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	conductorID := c.GetInt("user_id") // Inyectado por JWTAuthMiddleware
 	if conductorID == 0 {
 		core.RespondBadRequest(c, "id de conductor no encontrado en el contexto", nil)
@@ -42,7 +48,7 @@ func (ctr *DispositivoController) Solicitar(c *gin.Context) {
 		return
 	}
 
-	apiKey, err := ctr.useCases.Solicitar(c.Request.Context(), conductorID, req)
+	apiKey, err := ctr.useCases.Solicitar(c.Request.Context(), tenantID, conductorID, req)
 	if err != nil {
 		core.RespondInternalServerError(c, "no se pudo registrar la solicitud del dispositivo", err)
 		return
@@ -65,13 +71,19 @@ func (ctr *DispositivoController) Solicitar(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/dispositivos/mi-estado [get]
 func (ctr *DispositivoController) MiEstado(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	conductorID := c.GetInt("user_id")
 	if conductorID == 0 {
 		core.RespondBadRequest(c, "id de conductor no encontrado en el contexto", nil)
 		return
 	}
 
-	d, err := ctr.useCases.FindByConductorID(c.Request.Context(), conductorID)
+	d, err := ctr.useCases.FindByConductorID(c.Request.Context(), tenantID, conductorID)
 	if err != nil {
 		core.RespondInternalServerError(c, "error al consultar el dispositivo", err)
 		return
@@ -108,6 +120,12 @@ func (ctr *DispositivoController) MiEstado(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/dispositivos/aprobar/{conductor_id} [put]
 func (ctr *DispositivoController) Aprobar(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	conductorIDStr := c.Param("conductor_id")
 	conductorID, err := strconv.Atoi(conductorIDStr)
 	if err != nil {
@@ -115,7 +133,7 @@ func (ctr *DispositivoController) Aprobar(c *gin.Context) {
 		return
 	}
 
-	err = ctr.useCases.Aprobar(c.Request.Context(), conductorID)
+	err = ctr.useCases.Aprobar(c.Request.Context(), tenantID, conductorID)
 	if err != nil {
 		core.RespondInternalServerError(c, "error al aprobar el dispositivo", err)
 		return
@@ -139,6 +157,12 @@ func (ctr *DispositivoController) Aprobar(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/dispositivos/desvincular/{conductor_id} [delete]
 func (ctr *DispositivoController) Desvincular(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	conductorIDStr := c.Param("conductor_id")
 	conductorID, err := strconv.Atoi(conductorIDStr)
 	if err != nil {
@@ -146,7 +170,7 @@ func (ctr *DispositivoController) Desvincular(c *gin.Context) {
 		return
 	}
 
-	err = ctr.useCases.Desvincular(c.Request.Context(), conductorID)
+	err = ctr.useCases.Desvincular(c.Request.Context(), tenantID, conductorID)
 	if err != nil {
 		core.RespondInternalServerError(c, "error al desvincular el dispositivo", err)
 		return
@@ -168,7 +192,13 @@ func (ctr *DispositivoController) Desvincular(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/dispositivos/pendientes [get]
 func (ctr *DispositivoController) ListarPendientes(c *gin.Context) {
-	pendientes, err := ctr.useCases.ListarPendientes(c.Request.Context())
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
+	pendientes, err := ctr.useCases.ListarPendientes(c.Request.Context(), tenantID)
 	if err != nil {
 		core.RespondInternalServerError(c, "error al listar dispositivos pendientes", err)
 		return
@@ -194,7 +224,13 @@ func (ctr *DispositivoController) ListarPendientes(c *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/dispositivos/activos [get]
 func (ctr *DispositivoController) ListarActivos(c *gin.Context) {
-	activos, err := ctr.useCases.ListarActivos(c.Request.Context())
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
+	activos, err := ctr.useCases.ListarActivos(c.Request.Context(), tenantID)
 	if err != nil {
 		core.RespondInternalServerError(c, "error al listar dispositivos activos", err)
 		return

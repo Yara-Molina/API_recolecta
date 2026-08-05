@@ -27,9 +27,15 @@ func NewDeleteRutaController(uc *application.DeleteRutaUseCase) *DeleteRutaContr
 // @Security     BearerAuth
 // @Router       /api/rutas/{id} [delete]
 func (ctr *DeleteRutaController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
 	id, _ := strconv.Atoi(ctx.Param("id"))
 
-	err := ctr.uc.Run(int32(id))
+	err := ctr.uc.Run(ctx.Request.Context(), tenantID, int32(id))
 	if err != nil {
 		if strings.Contains(err.Error(), "no encontrado") || strings.Contains(err.Error(), "no encontrada") {
 			core.RespondNotFound(ctx, "Ruta", ctx.Param("id"))

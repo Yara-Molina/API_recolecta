@@ -34,6 +34,12 @@ func NewDeleteAnomaliaController(deleteUseCase *application.DeleteAnomaliaUseCas
 // @Description  (conductor_id/ciudadano_id == su user_id, segun corresponda).
 // @Router       /api/anomalias/{id} [delete]
 func (ctrl *DeleteAnomaliaController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -44,7 +50,7 @@ func (ctrl *DeleteAnomaliaController) Run(c *gin.Context) {
 	userID := c.GetInt("user_id")
 	roleID := c.GetInt("role_id")
 
-	errDelete := ctrl.deleteUseCase.Run(int32(id), int32(userID), roleID)
+	errDelete := ctrl.deleteUseCase.Run(c.Request.Context(), tenantID, int32(id), int32(userID), roleID)
 	if errDelete != nil {
 		switch {
 		case errors.Is(errDelete, application.ErrNoEsDueno):

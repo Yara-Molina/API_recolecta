@@ -2,6 +2,8 @@
 package application
 
 import (
+	"context"
+
 	repositories "github.com/vicpoo/API_recolecta/src/Fallas/domain"
 	"github.com/vicpoo/API_recolecta/src/Fallas/domain/entities"
 )
@@ -14,8 +16,8 @@ func NewUpdateAnomaliaUseCase(repo repositories.IAnomalia) *UpdateAnomaliaUseCas
 	return &UpdateAnomaliaUseCase{repo: repo}
 }
 
-func (uc *UpdateAnomaliaUseCase) Run(anomalia *entities.Anomalia) (*entities.Anomalia, error) {
-	err := uc.repo.Update(anomalia)
+func (uc *UpdateAnomaliaUseCase) Run(ctx context.Context, tenantID int, anomalia *entities.Anomalia) (*entities.Anomalia, error) {
+	err := uc.repo.Update(ctx, tenantID, anomalia)
 	if err != nil {
 		return nil, err
 	}

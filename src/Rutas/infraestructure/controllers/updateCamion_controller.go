@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/vicpoo/API_recolecta/src/Rutas/application"
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
+	"github.com/vicpoo/API_recolecta/src/core"
 )
 
 type UpdateCamionController struct {
@@ -30,6 +31,16 @@ func NewUpdateCamionController(uc *application.UpdateCamionUseCase) *UpdateCamio
 // @Security     BearerAuth
 // @Router       /api/camion/{id} [put]
 func (ctr *UpdateCamionController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "tenant no encontrado en token",
+			"code":    http.StatusBadRequest,
+		})
+		return
+	}
+
 	idParam := ctx.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -52,7 +63,7 @@ func (ctr *UpdateCamionController) Run(ctx *gin.Context) {
 		return
 	}
 
-	result, err := ctr.uc.Run(int32(id), &camion)
+	result, err := ctr.uc.Run(ctx.Request.Context(), tenantID, int32(id), &camion)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,

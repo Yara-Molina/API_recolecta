@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/vicpoo/API_recolecta/src/Ciudadanos/domain/entities"
+	"github.com/vicpoo/API_recolecta/src/core"
 )
 
 type DomicilioPostgresRepository struct {
@@ -18,26 +19,28 @@ func NewDomicilioPostgresRepository(db *pgxpool.Pool) *DomicilioPostgresReposito
 	return &DomicilioPostgresRepository{db: db}
 }
 
-func (r *DomicilioPostgresRepository) Create(ctx context.Context, d *entities.Domicilio) (int, error) {
+func (r *DomicilioPostgresRepository) Create(ctx context.Context, tenantID int, d *entities.Domicilio) (int, error) {
 	const q = `
-		INSERT INTO domicilio (ciudadano_id, colonia_id, alias, calle, numero, referencia, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO domicilio (tenant_id, ciudadano_id, colonia_id, alias, calle, numero, referencia, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id
 	`
 
 	var id int
-	err := r.db.QueryRow(
-		ctx,
-		q,
-		d.CiudadanoID,
-		d.ColoniaID,
-		d.Alias,
-		d.Calle,
-		d.Numero,
-		d.Referencia,
-		d.CreatedAt,
-	).Scan(&id)
-
+	err := core.RunInTenantTx(ctx, r.db, tenantID, func(tx pgx.Tx) error {
+		return tx.QueryRow(
+			ctx,
+			q,
+			tenantID,
+			d.CiudadanoID,
+			d.ColoniaID,
+			d.Alias,
+			d.Calle,
+			d.Numero,
+			d.Referencia,
+			d.CreatedAt,
+		).Scan(&id)
+	})
 	if err != nil {
 		return 0, err
 	}
@@ -45,24 +48,26 @@ func (r *DomicilioPostgresRepository) Create(ctx context.Context, d *entities.Do
 	return id, nil
 }
 
-func (r *DomicilioPostgresRepository) GetByID(ctx context.Context, id int) (*entities.Domicilio, error) {
+func (r *DomicilioPostgresRepository) GetByID(ctx context.Context, tenantID int, id int) (*entities.Domicilio, error) {
 	const q = `
 		SELECT id, ciudadano_id, colonia_id, alias, calle, numero, referencia, created_at
 		FROM domicilio
-		WHERE id = $1
+		WHERE id = $1 AND tenant_id = $2
 	`
 
 	var d entities.Domicilio
-	err := r.db.QueryRow(ctx, q, id).Scan(
-		&d.ID,
-		&d.CiudadanoID,
-		&d.ColoniaID,
-		&d.Alias,
-		&d.Calle,
-		&d.Numero,
-		&d.Referencia,
-		&d.CreatedAt,
-	)
+	err := core.RunInTenantTx(ctx, r.db, tenantID, func(tx pgx.Tx) error {
+		return tx.QueryRow(ctx, q, id, tenantID).Scan(
+			&d.ID,
+			&d.CiudadanoID,
+			&d.ColoniaID,
+			&d.Alias,
+			&d.Calle,
+			&d.Numero,
+			&d.Referencia,
+			&d.CreatedAt,
+		)
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -73,78 +78,89 @@ func (r *DomicilioPostgresRepository) GetByID(ctx context.Context, id int) (*ent
 	return &d, nil
 }
 
-func (r *DomicilioPostgresRepository) List(ctx context.Context) ([]entities.Domicilio, error) {
+func (r *DomicilioPostgresRepository) List(ctx context.Context, tenantID int) ([]entities.Domicilio, error) {
 	const q = `
 		SELECT id, ciudadano_id, colonia_id, alias, calle, numero, referencia, created_at
 		FROM domicilio
+		WHERE tenant_id = $1
 		ORDER BY id DESC
 	`
 
-	rows, err := r.db.Query(ctx, q)
+	var domicilios []entities.Domicilio
+	err := core.RunInTenantTx(ctx, r.db, tenantID, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, q, tenantID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var d entities.Domicilio
+			if err := rows.Scan(
+				&d.ID,
+				&d.CiudadanoID,
+				&d.ColoniaID,
+				&d.Alias,
+				&d.Calle,
+				&d.Numero,
+				&d.Referencia,
+				&d.CreatedAt,
+			); err != nil {
+				return err
+			}
+			domicilios = append(domicilios, d)
+		}
+		return rows.Err()
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var domicilios []entities.Domicilio
-
-	for rows.Next() {
-		var d entities.Domicilio
-		if err := rows.Scan(
-			&d.ID,
-			&d.CiudadanoID,
-			&d.ColoniaID,
-			&d.Alias,
-			&d.Calle,
-			&d.Numero,
-			&d.Referencia,
-			&d.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		domicilios = append(domicilios, d)
-	}
-
-	return domicilios, rows.Err()
+	return domicilios, nil
 }
 
-func (r *DomicilioPostgresRepository) ListByCiudadanoID(ctx context.Context, ciudadanoID int) ([]entities.Domicilio, error) {
+func (r *DomicilioPostgresRepository) ListByCiudadanoID(ctx context.Context, tenantID int, ciudadanoID int) ([]entities.Domicilio, error) {
 	const q = `
 		SELECT id, ciudadano_id, colonia_id, alias, calle, numero, referencia, created_at
 		FROM domicilio
-		WHERE ciudadano_id = $1
+		WHERE ciudadano_id = $1 AND tenant_id = $2
 		ORDER BY id DESC
 	`
 
-	rows, err := r.db.Query(ctx, q, ciudadanoID)
+	var domicilios []entities.Domicilio
+	err := core.RunInTenantTx(ctx, r.db, tenantID, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, q, ciudadanoID, tenantID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var d entities.Domicilio
+			if err := rows.Scan(
+				&d.ID,
+				&d.CiudadanoID,
+				&d.ColoniaID,
+				&d.Alias,
+				&d.Calle,
+				&d.Numero,
+				&d.Referencia,
+				&d.CreatedAt,
+			); err != nil {
+				return err
+			}
+			domicilios = append(domicilios, d)
+		}
+		return rows.Err()
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var domicilios []entities.Domicilio
-
-	for rows.Next() {
-		var d entities.Domicilio
-		if err := rows.Scan(
-			&d.ID,
-			&d.CiudadanoID,
-			&d.ColoniaID,
-			&d.Alias,
-			&d.Calle,
-			&d.Numero,
-			&d.Referencia,
-			&d.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		domicilios = append(domicilios, d)
-	}
-
-	return domicilios, rows.Err()
+	return domicilios, nil
 }
 
-func (r *DomicilioPostgresRepository) Update(ctx context.Context, d *entities.Domicilio) error {
+func (r *DomicilioPostgresRepository) Update(ctx context.Context, tenantID int, d *entities.Domicilio) error {
 	const q = `
 		UPDATE domicilio
 		SET colonia_id = $1,
@@ -152,55 +168,59 @@ func (r *DomicilioPostgresRepository) Update(ctx context.Context, d *entities.Do
 		    calle = $3,
 		    numero = $4,
 		    referencia = $5
-		WHERE id = $6
+		WHERE id = $6 AND tenant_id = $7
 	`
 
-	cmd, err := r.db.Exec(ctx, q, d.ColoniaID, d.Alias, d.Calle, d.Numero, d.Referencia, d.ID)
-	if err != nil {
-		return err
-	}
-	if cmd.RowsAffected() == 0 {
-		return errors.New("domicilio no encontrado")
-	}
-
-	return nil
+	return core.RunInTenantTx(ctx, r.db, tenantID, func(tx pgx.Tx) error {
+		cmd, err := tx.Exec(ctx, q, d.ColoniaID, d.Alias, d.Calle, d.Numero, d.Referencia, d.ID, tenantID)
+		if err != nil {
+			return err
+		}
+		if cmd.RowsAffected() == 0 {
+			return errors.New("domicilio no encontrado")
+		}
+		return nil
+	})
 }
 
-func (r *DomicilioPostgresRepository) DeleteByCiudadano(ctx context.Context, id int, ciudadanoID int) error {
+func (r *DomicilioPostgresRepository) DeleteByCiudadano(ctx context.Context, tenantID int, id int, ciudadanoID int) error {
 	const q = `
 		DELETE FROM domicilio
-		WHERE id = $1 AND ciudadano_id = $2
+		WHERE id = $1 AND ciudadano_id = $2 AND tenant_id = $3
 	`
 
-	cmd, err := r.db.Exec(ctx, q, id, ciudadanoID)
-	if err != nil {
-		return err
-	}
-	if cmd.RowsAffected() == 0 {
-		return errors.New("domicilio no encontrado o no pertenece al ciudadano")
-	}
-
-	return nil
+	return core.RunInTenantTx(ctx, r.db, tenantID, func(tx pgx.Tx) error {
+		cmd, err := tx.Exec(ctx, q, id, ciudadanoID, tenantID)
+		if err != nil {
+			return err
+		}
+		if cmd.RowsAffected() == 0 {
+			return errors.New("domicilio no encontrado o no pertenece al ciudadano")
+		}
+		return nil
+	})
 }
 
-func (r *DomicilioPostgresRepository) FindByAlias(ctx context.Context, alias string, ciudadanoID int) (*entities.Domicilio, error) {
+func (r *DomicilioPostgresRepository) FindByAlias(ctx context.Context, tenantID int, alias string, ciudadanoID int) (*entities.Domicilio, error) {
 	const q = `
 		SELECT id, ciudadano_id, colonia_id, alias, calle, numero, referencia, created_at
 		FROM domicilio
-		WHERE alias = $1 AND ciudadano_id = $2
+		WHERE alias = $1 AND ciudadano_id = $2 AND tenant_id = $3
 	`
 
 	var d entities.Domicilio
-	err := r.db.QueryRow(ctx, q, alias, ciudadanoID).Scan(
-		&d.ID,
-		&d.CiudadanoID,
-		&d.ColoniaID,
-		&d.Alias,
-		&d.Calle,
-		&d.Numero,
-		&d.Referencia,
-		&d.CreatedAt,
-	)
+	err := core.RunInTenantTx(ctx, r.db, tenantID, func(tx pgx.Tx) error {
+		return tx.QueryRow(ctx, q, alias, ciudadanoID, tenantID).Scan(
+			&d.ID,
+			&d.CiudadanoID,
+			&d.ColoniaID,
+			&d.Alias,
+			&d.Calle,
+			&d.Numero,
+			&d.Referencia,
+			&d.CreatedAt,
+		)
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil

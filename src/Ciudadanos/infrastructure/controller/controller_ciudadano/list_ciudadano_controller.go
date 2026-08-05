@@ -25,7 +25,13 @@ func NewListCiudadanoController(useCase *application_ciudadano.ViewAllCiudadano)
 // @Security     BearerAuth
 // @Router       /api/ciudadanos [get]
 func (c *ListCiudadanoController) Run(ctx *gin.Context) {
-	ciudadanos, err := c.useCase.Execute(ctx.Request.Context())
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
+	ciudadanos, err := c.useCase.Execute(ctx.Request.Context(), tenantID)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "no se pudo listar ciudadanos", err)
 		return

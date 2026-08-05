@@ -28,6 +28,12 @@ func NewCreateRutaController(uc *application.CreateRutaUseCase) *CreateRutaContr
 // @Security     BearerAuth
 // @Router       /api/rutas/ [post]
 func (ctr *CreateRutaController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
 	var req struct {
 		Nombre      string          `json:"nombre" binding:"required"`
 		Descripcion string          `json:"descripcion"`
@@ -59,7 +65,7 @@ func (ctr *CreateRutaController) Run(ctx *gin.Context) {
 		CreatedAt:   createdAt,
 	}
 
-	err := ctr.uc.Run(ruta)
+	err := ctr.uc.Run(ctx.Request.Context(), tenantID, ruta)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error creando ruta", err)
 		return

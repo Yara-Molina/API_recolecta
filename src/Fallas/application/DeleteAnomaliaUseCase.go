@@ -2,6 +2,7 @@
 package application
 
 import (
+	"context"
 	"errors"
 
 	repositories "github.com/vicpoo/API_recolecta/src/Fallas/domain"
@@ -31,12 +32,12 @@ var ErrNoEsDueno = errors.New("forbidden: no eres el dueno de esta anomalia")
 // ciudadano 5 y el empleado 5 son personas distintas). Sin saber el rol de
 // quien pide, comparar el user_id contra la columna equivocada dejaria
 // borrar (o negaria de mas) por una coincidencia numerica accidental.
-func (uc *DeleteAnomaliaUseCase) Run(id int32, requesterUserID int32, requesterRoleID int) error {
+func (uc *DeleteAnomaliaUseCase) Run(ctx context.Context, tenantID int, id int32, requesterUserID int32, requesterRoleID int) error {
 	if esStaff(requesterRoleID) {
-		return uc.repo.Delete(id)
+		return uc.repo.Delete(ctx, tenantID, id)
 	}
 
-	anomalia, err := uc.repo.GetByID(id)
+	anomalia, err := uc.repo.GetByID(ctx, tenantID, id)
 	if err != nil {
 		return err
 	}
@@ -45,14 +46,14 @@ func (uc *DeleteAnomaliaUseCase) Run(id int32, requesterUserID int32, requesterR
 		if anomalia.CiudadanoID == nil || *anomalia.CiudadanoID != requesterUserID {
 			return ErrNoEsDueno
 		}
-		return uc.repo.Delete(id)
+		return uc.repo.Delete(ctx, tenantID, id)
 	}
 
 	if anomalia.ConductorID == nil || *anomalia.ConductorID != requesterUserID {
 		return ErrNoEsDueno
 	}
 
-	return uc.repo.Delete(id)
+	return uc.repo.Delete(ctx, tenantID, id)
 }
 
 func esStaff(roleID int) bool {

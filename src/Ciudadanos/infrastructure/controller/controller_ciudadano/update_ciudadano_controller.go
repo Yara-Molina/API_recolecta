@@ -30,6 +30,12 @@ func NewUpdateCiudadanoController(useCase *application_ciudadano.UpdateCiudadano
 // @Security     BearerAuth
 // @Router       /api/ciudadanos/{id} [patch]
 func (c *UpdateCiudadanoController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondInvalidInput(ctx, "id inválido")
@@ -55,7 +61,7 @@ func (c *UpdateCiudadanoController) Run(ctx *gin.Context) {
 		appInput.Password = &input.Password
 	}
 
-	if err := c.useCase.Execute(ctx.Request.Context(), appInput); err != nil {
+	if err := c.useCase.Execute(ctx.Request.Context(), tenantID, appInput); err != nil {
 		core.RespondBadRequest(ctx, err.Error(), nil)
 		return
 	}

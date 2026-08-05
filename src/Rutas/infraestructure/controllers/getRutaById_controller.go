@@ -29,6 +29,12 @@ func NewGetRutaByIdController(uc *application.GetRutaByIdUseCase) *GetRutaByIdCo
 // @Security     BearerAuth
 // @Router       /api/rutas/{id} [get]
 func (ctr *GetRutaByIdController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
 	idParam := ctx.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -36,7 +42,7 @@ func (ctr *GetRutaByIdController) Run(ctx *gin.Context) {
 		return
 	}
 
-	ruta, err := ctr.uc.Run(int32(id))
+	ruta, err := ctr.uc.Run(ctx.Request.Context(), tenantID, int32(id))
 	if err != nil {
 		if strings.Contains(err.Error(), "no encontrado") || strings.Contains(err.Error(), "no encontrada") {
 			core.RespondNotFound(ctx, "Ruta", ctx.Param("id"))

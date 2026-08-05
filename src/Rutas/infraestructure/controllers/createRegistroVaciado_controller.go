@@ -27,6 +27,12 @@ func NewCreateRegistroVaciadoController(uc *application.CreateRegistroVaciadoUse
 // @Security     BearerAuth
 // @Router       /api/registro-vaciado/ [post]
 func (c *CreateRegistroVaciadoController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	var registro entities.RegistroVaciado
 
 	if err := ctx.ShouldBindJSON(&registro); err != nil {
@@ -34,7 +40,7 @@ func (c *CreateRegistroVaciadoController) Run(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.uc.Execute(&registro)
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID, &registro)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "No se pudo crear el registro de vaciado", err)
 		return

@@ -15,6 +15,6 @@ func NewViewOneCiudadano(repo domain.CiudadanoRepository) *ViewOneCiudadano {
 	return &ViewOneCiudadano{repo: repo}
 }
 
-func (uc *ViewOneCiudadano) Execute(ctx context.Context, id int) (*entities.Ciudadano, error) {
-	return uc.repo.GetByID(ctx, id)
+func (uc *ViewOneCiudadano) Execute(ctx context.Context, tenantID int, id int) (*entities.Ciudadano, error) {
+	return uc.repo.GetByID(ctx, tenantID, id)
 }

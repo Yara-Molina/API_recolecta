@@ -1,6 +1,10 @@
 package application
 
-import "github.com/vicpoo/API_recolecta/src/Camion/domain/ports"
+import (
+	"context"
+
+	"github.com/vicpoo/API_recolecta/src/Camion/domain/ports"
+)
 
 type CerrarAsignacionActivaChoferUseCase struct {
 	repo ports.IHistorialAsignacionCamion
@@ -10,6 +14,6 @@ func NewCerrarAsignacionActivaChoferUseCase(repo ports.IHistorialAsignacionCamio
 	return &CerrarAsignacionActivaChoferUseCase{repo: repo}
 }
 
-func (uc *CerrarAsignacionActivaChoferUseCase) Run(choferId int32) error {
-	return uc.repo.CerrarAsignacionActivaChofer(choferId)
+func (uc *CerrarAsignacionActivaChoferUseCase) Run(ctx context.Context, tenantID int, choferId int32) error {
+	return uc.repo.CerrarAsignacionActivaChofer(ctx, tenantID, choferId)
 }

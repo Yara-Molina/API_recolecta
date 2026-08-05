@@ -29,6 +29,12 @@ func NewUpdateEmpleadoController(useCase *application.UpdateEmpleado) *UpdateEmp
 // @Failure      404 {object} core.ErrorResponse
 // @Router       /api/empleados/{id} [patch]
 func (c *UpdateEmpleadoController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondBadRequest(ctx, "id inválido", nil)
@@ -43,7 +49,7 @@ func (c *UpdateEmpleadoController) Run(ctx *gin.Context) {
 
 	input.ID = id
 
-	result, err := c.useCase.Execute(ctx.Request.Context(), input)
+	result, err := c.useCase.Execute(ctx.Request.Context(), tenantID, input)
 	if err != nil {
 		if err.Error() == "empleado no encontrado" {
 			core.RespondNotFound(ctx, "empleado", strconv.Itoa(id))

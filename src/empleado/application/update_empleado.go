@@ -29,8 +29,8 @@ func NewUpdateEmpleado(repo domain.EmpleadoRepository) *UpdateEmpleado {
 	return &UpdateEmpleado{repo: repo}
 }
 
-func (uc *UpdateEmpleado) Execute(ctx context.Context, in UpdateEmpleadoInput) (*entities.Empleado, error) {
-	empleado, err := uc.repo.GetByID(ctx, in.ID)
+func (uc *UpdateEmpleado) Execute(ctx context.Context, tenantID int, in UpdateEmpleadoInput) (*entities.Empleado, error) {
+	empleado, err := uc.repo.GetByID(ctx, tenantID, in.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +117,9 @@ func (uc *UpdateEmpleado) Execute(ctx context.Context, in UpdateEmpleadoInput) (
 		empleado.Desactivado = *in.Desactivado
 	}
 
-	if err := uc.repo.Update(ctx, empleado); err != nil {
+	if err := uc.repo.Update(ctx, tenantID, empleado); err != nil {
 		return nil, err
 	}
 
-	return uc.repo.GetByID(ctx, in.ID)
+	return uc.repo.GetByID(ctx, tenantID, in.ID)
 }

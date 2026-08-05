@@ -45,6 +45,12 @@ func NewDomicilioController(
 // @Security     BearerAuth
 // @Router       /api/domicilios [post]
 func (c *DomicilioController) Create(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	var body entities.CreateDomicilioRequest
 
 	if err := ctx.ShouldBindJSON(&body); err != nil {
@@ -67,7 +73,7 @@ func (c *DomicilioController) Create(ctx *gin.Context) {
 		Lon:         body.Lon,
 	}
 
-	id, err := c.create.Execute(ctx.Request.Context(), appInput)
+	id, err := c.create.Execute(ctx.Request.Context(), tenantID, appInput)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error al crear domicilio", err)
 		return
@@ -89,9 +95,15 @@ func (c *DomicilioController) Create(ctx *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/domicilios [get]
 func (c *DomicilioController) List(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	ciudadanoID := ctx.GetInt("user_id")
 
-	domicilios, err := c.list.ExecuteByCiudadanoID(ctx.Request.Context(), ciudadanoID)
+	domicilios, err := c.list.ExecuteByCiudadanoID(ctx.Request.Context(), tenantID, ciudadanoID)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error al listar domicilios", err)
 		return
@@ -116,13 +128,19 @@ func (c *DomicilioController) List(ctx *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/domicilios/{id} [get]
 func (c *DomicilioController) GetByID(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondInvalidInput(ctx, "ID de domicilio inválido")
 		return
 	}
 
-	domicilio, err := c.get.Execute(ctx.Request.Context(), id)
+	domicilio, err := c.get.Execute(ctx.Request.Context(), tenantID, id)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error al obtener domicilio", err)
 		return
@@ -153,6 +171,12 @@ func (c *DomicilioController) GetByID(ctx *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/domicilios/{id} [put]
 func (c *DomicilioController) Update(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondInvalidInput(ctx, "ID de domicilio inválido")
@@ -174,7 +198,7 @@ func (c *DomicilioController) Update(ctx *gin.Context) {
 		Referencia: body.Referencia,
 	}
 
-	if err := c.update.Execute(ctx.Request.Context(), appInput); err != nil {
+	if err := c.update.Execute(ctx.Request.Context(), tenantID, appInput); err != nil {
 		core.RespondInternalServerError(ctx, "Error al actualizar domicilio", err)
 		return
 	}
@@ -197,6 +221,12 @@ func (c *DomicilioController) Update(ctx *gin.Context) {
 // @Security     BearerAuth
 // @Router       /api/domicilios/{id} [delete]
 func (c *DomicilioController) Delete(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondInvalidInput(ctx, "ID de domicilio inválido")
@@ -205,7 +235,7 @@ func (c *DomicilioController) Delete(ctx *gin.Context) {
 
 	ciudadanoID := ctx.GetInt("user_id")
 
-	if err := c.delete.Execute(ctx.Request.Context(), id, ciudadanoID); err != nil {
+	if err := c.delete.Execute(ctx.Request.Context(), tenantID, id, ciudadanoID); err != nil {
 		core.RespondError(ctx, http.StatusForbidden, core.ErrCodeForbidden, "No autorizado para eliminar este domicilio", map[string]string{"error": err.Error()})
 		return
 	}

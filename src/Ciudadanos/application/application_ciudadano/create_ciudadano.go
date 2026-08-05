@@ -28,7 +28,14 @@ func NewCreateCiudadano(repo domain.CiudadanoRepository) *CreateCiudadano {
 	return &CreateCiudadano{repo: repo}
 }
 
-func (uc *CreateCiudadano) Execute(ctx context.Context, in CreateCiudadanoInput) (int, error) {
+// TODO(multitenant): este endpoint es público (sin JWT: un ciudadano todavía
+// no tiene cuenta al registrarse) y el request no incluye ningún identificador
+// de tenant/municipio. El controller pasa un tenantID por defecto (ver
+// create_ciudadano_controller.go) hasta que se decida cómo un ciudadano
+// nuevo elige su tenant (¿selector de municipio en el registro?, ¿subdominio
+// por tenant?). Mientras eso no se resuelva, TODOS los ciudadanos que se
+// autoregistren caen en el mismo tenant, sin importar cuál use la app.
+func (uc *CreateCiudadano) Execute(ctx context.Context, tenantID int, in CreateCiudadanoInput) (int, error) {
 	in.Email = strings.TrimSpace(strings.ToLower(in.Email))
 	in.Alias = strings.TrimSpace(in.Alias)
 	in.Password = strings.TrimSpace(in.Password)
@@ -75,14 +82,14 @@ func (uc *CreateCiudadano) Execute(ctx context.Context, in CreateCiudadanoInput)
 		CreatedAt: time.Now(),
 	}
 
-	id, err := uc.repo.Create(ctx, ciudadano)
+	id, err := uc.repo.Create(ctx, tenantID, ciudadano)
 	if err != nil {
 		return 0, err
 	}
 
 	rdb, err := core.ConnectRedis()
 	if err != nil {
-		_ = uc.repo.Delete(ctx, id)
+		_ = uc.repo.Delete(ctx, tenantID, id)
 		return 0, err
 	}
 
@@ -98,7 +105,7 @@ func (uc *CreateCiudadano) Execute(ctx context.Context, in CreateCiudadanoInput)
 	)
 
 	if _, err := pipe.Exec(ctx); err != nil {
-		_ = uc.repo.Delete(ctx, id)
+		_ = uc.repo.Delete(ctx, tenantID, id)
 		return 0, err
 	}
 

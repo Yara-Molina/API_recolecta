@@ -25,7 +25,13 @@ func NewGetAllAnomaliasController(getAllUseCase *application.GetAllAnomaliasUseC
 // @Security     BearerAuth
 // @Router       /api/anomalias/ [get]
 func (ctrl *GetAllAnomaliasController) Run(c *gin.Context) {
-	anomalias, err := ctrl.getAllUseCase.Run()
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
+	anomalias, err := ctrl.getAllUseCase.Run(c.Request.Context(), tenantID)
 	if err != nil {
 		core.RespondInternalServerError(c, "Error al obtener las anomalías", err)
 		return

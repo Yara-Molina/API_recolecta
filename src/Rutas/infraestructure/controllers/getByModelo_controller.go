@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/vicpoo/API_recolecta/src/Rutas/application"
+	"github.com/vicpoo/API_recolecta/src/core"
 )
 
 type GetCamionByModeloController struct {
@@ -25,9 +26,18 @@ func NewGetCamionByModeloController(uc *application.GetCamionByModeloUseCase) *G
 // @Security     BearerAuth
 // @Router       /api/camion/modelo [get]
 func (ctr *GetCamionByModeloController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "tenant no encontrado en token",
+		})
+		return
+	}
+
 	modelo := ctx.Query("modelo")
 
-	camiones, err := ctr.uc.Run(modelo)
+	camiones, err := ctr.uc.Run(ctx.Request.Context(), tenantID, modelo)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,

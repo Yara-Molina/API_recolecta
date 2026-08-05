@@ -32,6 +32,16 @@ CREATE TABLE IF NOT EXISTS tenant (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
+-- Fase D (docs/10-plan-completar-multitenancy.md): cada tenant es un
+-- municipio distinto que puede querer su propio logo y su propia área de
+-- cobertura en el mapa. ADD COLUMN IF NOT EXISTS para que aplique tanto si
+-- la tabla se crea aquí mismo como si ya existía de una instalación previa.
+ALTER TABLE tenant ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE tenant ADD COLUMN IF NOT EXISTS bbox_min_lat DOUBLE PRECISION;
+ALTER TABLE tenant ADD COLUMN IF NOT EXISTS bbox_min_lon DOUBLE PRECISION;
+ALTER TABLE tenant ADD COLUMN IF NOT EXISTS bbox_max_lat DOUBLE PRECISION;
+ALTER TABLE tenant ADD COLUMN IF NOT EXISTS bbox_max_lon DOUBLE PRECISION;
+
 INSERT INTO tenant (tenant_id, nombre, activo)
 VALUES (1, 'Tenant Demo/Legacy', TRUE)
 ON CONFLICT (tenant_id) DO NOTHING;
@@ -47,6 +57,13 @@ CREATE TABLE IF NOT EXISTS rol (
     nombre VARCHAR(50) UNIQUE NOT NULL,
     active BOOLEAN DEFAULT TRUE
 );
+
+-- Fase D: rol SUPERADMIN (core.SUPERADMIN = 5), el único autorizado para
+-- /api/tenants (ver core/role_middleware.go, RequireSuperAdmin). No toca las
+-- filas 0-4 existentes (gestionadas fuera de este script).
+INSERT INTO rol (id, nombre, active)
+VALUES (5, 'Super Administrador', TRUE)
+ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS empleado (
     id SERIAL PRIMARY KEY,

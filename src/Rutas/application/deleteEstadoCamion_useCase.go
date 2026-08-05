@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
 )
@@ -15,6 +16,6 @@ func NewDeleteEstadoCamionUseCase(repo ports.IEstadoCamion) *DeleteEstadoCamionU
 	}
 }
 
-func (uc *DeleteEstadoCamionUseCase) Run(id int32) error {
- 	return uc.repo.Delete(id)
+func (uc *DeleteEstadoCamionUseCase) Run(ctx context.Context, tenantID int, id int32) error {
+	return uc.repo.Delete(ctx, tenantID, id)
 }

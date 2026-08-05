@@ -80,13 +80,19 @@ func (uc *ProcesarPipelineAnomaliaUseCase) Run(anomaliaID int32, descripcion str
 	nivelRiesgo := inferencia.NivelRiesgoFinal
 	inferenciaID := int32(inferencia.ID)
 
-	if nivelRiesgo == "alto" {
-		// Reporte con alta probabilidad de ser fraudulento/spam: no tiene
-		// sentido gastar el clasificador en el. Se marca y se corta aqui.
+	// Solo "bajo" pasa a clasificador_reportes. "medio" se trata igual que
+	// "alto" (se rechaza sin clasificar) -- decision de producto: cualquier
+	// reporte que modelo_reportes no considere claramente limpio no debe
+	// llegarle al administrador por la via normal (GetAllAnomaliasUseCase ya
+	// filtra estado_pipeline='rechazado' del listado, ver
+	// postgres_anomalia_repository.go). Antes solo "alto" se rechazaba y
+	// "medio" seguia de largo hacia el clasificador (y por lo tanto era
+	// visible para el admin) -- ese era el bug real que se reportó.
+	if nivelRiesgo == "alto" || nivelRiesgo == "medio" {
 		if err := uc.repo.ActualizarPipeline(anomaliaID, "rechazado", &nivelRiesgo, &inferenciaID, nil, nil, nil, nil); err != nil {
 			log.Println("pipeline reportes: no se pudo guardar el rechazo de la anomalia", anomaliaID, ":", err)
 		} else {
-			log.Println("pipeline reportes: anomalia", anomaliaID, "marcada como rechazado")
+			log.Println("pipeline reportes: anomalia", anomaliaID, "marcada como rechazado (nivel_riesgo:", nivelRiesgo, ")")
 		}
 		return
 	}
@@ -114,12 +120,25 @@ func (uc *ProcesarPipelineAnomaliaUseCase) Run(anomaliaID int32, descripcion str
 		log.Println("pipeline reportes: anomalia", anomaliaID, "marcada como clasificado correctamente")
 	}
 
-	// TODO(algoritmo genetico de rutas): cuando exista ese componente, aqui
-	// es donde se dispara la redireccion si clasificacion.Categoria ==
-	// "calle_tapada" (equivalente: clasificacion.Accion en
-	// {"block_edge", "inflate_weight"}). Por ahora solo queda persistida la
-	// accion_sugerida en la anomalia para que se pueda consultar/disparar
-	// manualmente o desde un endpoint aparte.
+	// Nota (ya no es un TODO): la re-optimizacion de ruta cuando
+	// clasificacion.Categoria == "calle_tapada" (accion "block_edge" o
+	// "inflate_weight") NO se dispara desde aqui. Ese trabajo lo hace el
+	// servicio externo api-rutas (Node.js, ver API_RUTA_URL / servicio real
+	// en https://api-rutas.practicasoftware.fun): recibe el webhook
+	// anomalia_creada (ver CreateAnomaliaUseCase.Run + anomalia_creada_
+	// notifier.go, dispara para TODA anomalia con lat/lon, sin filtrar por
+	// categoria) y el mismo internamente consulta sus rutas/puntos, llama al
+	// algoritmo genetico de rutas (AG, https://ag.practicasoftware.fun) y
+	// notifica a los conductores por su propio servicio de WebSocket
+	// (wss://websocket.practicasoftware.fun). Se intento construir esta
+	// misma logica aqui en gin-backend en una sesion anterior (cliente AG,
+	// lectura de Rutas/PuntoRecoleccion propias, notificacion por
+	// tracking_ws.Hub) pero se revirtio: duplicaba lo que api-rutas ya hace,
+	// y ademas usaba los datos de Ruta/PuntoRecoleccion del Postgres interno
+	// de gin-backend, que no son los mismos que consume la app (la app usa
+	// api-rutas para /rutas y /puntos-recoleccion, no el modulo Rutas de
+	// gin-backend). Ver docs/implementacion-fix-anomalias-y-ag.md para el
+	// detalle de esa marcha atras.
 }
 
 func (uc *ProcesarPipelineAnomaliaUseCase) marcarError(anomaliaID int32, mensaje string) {

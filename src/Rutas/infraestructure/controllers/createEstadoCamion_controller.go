@@ -29,6 +29,12 @@ func NewCreateEstadoCamionController(
 // @Security     BearerAuth
 // @Router       /api/estado-camion/ [post]
 func (ctr *CreateEstadoCamionController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	var estadoCamion entities.EstadoCamion
 
 	if err := ctx.ShouldBindJSON(&estadoCamion); err != nil {
@@ -36,7 +42,7 @@ func (ctr *CreateEstadoCamionController) Run(ctx *gin.Context) {
 		return
 	}
 
-	estadoCamionSaved, err := ctr.uc.Run(&estadoCamion)
+	estadoCamionSaved, err := ctr.uc.Run(ctx.Request.Context(), tenantID, &estadoCamion)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "No se pudo crear el estado de camión", err)
 		return

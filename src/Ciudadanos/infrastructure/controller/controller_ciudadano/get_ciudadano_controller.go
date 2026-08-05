@@ -30,6 +30,12 @@ func NewGetCiudadanoController(useCase *application_ciudadano.ViewOneCiudadano) 
 // @Security     BearerAuth
 // @Router       /api/ciudadanos/{id} [get]
 func (c *GetCiudadanoController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	idParam := ctx.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -37,7 +43,7 @@ func (c *GetCiudadanoController) Run(ctx *gin.Context) {
 		return
 	}
 
-	ciudadano, err := c.useCase.Execute(ctx.Request.Context(), id)
+	ciudadano, err := c.useCase.Execute(ctx.Request.Context(), tenantID, id)
 	if err != nil {
 		if err == sql.ErrNoRows || err.Error() == "ciudadano no encontrado" {
 			core.RespondNotFound(ctx, "ciudadano", strconv.Itoa(id))

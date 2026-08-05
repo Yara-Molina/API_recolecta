@@ -27,13 +27,19 @@ func NewGetAnomaliasByEstadoController(getByEstadoUseCase *application.GetAnomal
 // @Security     BearerAuth
 // @Router       /api/anomalias/estado [get]
 func (ctrl *GetAnomaliasByEstadoController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	estado := c.Query("estado")
 	if estado == "" {
 		core.RespondValidationError(c, "Parámetro de estado inválido", map[string]string{"estado": "requerido"})
 		return
 	}
 
-	anomalias, err := ctrl.getByEstadoUseCase.Run(estado)
+	anomalias, err := ctrl.getByEstadoUseCase.Run(c.Request.Context(), tenantID, estado)
 	if err != nil {
 		core.RespondInternalServerError(c, "No se pudieron obtener las anomalías por estado", err)
 		return

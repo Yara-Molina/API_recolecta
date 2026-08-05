@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"errors"
 
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
@@ -15,7 +16,7 @@ func NewSaveEstadoCamionUseCase(repo ports.IEstadoCamion) *SaveEstadoCamionUseCa
 	return &SaveEstadoCamionUseCase{repo: repo}
 }
 
-func (uc *SaveEstadoCamionUseCase) Run(estado *entities.EstadoCamion) (*entities.EstadoCamion, error) {
+func (uc *SaveEstadoCamionUseCase) Run(ctx context.Context, tenantID int, estado *entities.EstadoCamion) (*entities.EstadoCamion, error) {
 	if estado.Observaciones == "" {
 		return nil, errors.New("el nombre es obligatorio")
 	}
@@ -23,6 +24,6 @@ func (uc *SaveEstadoCamionUseCase) Run(estado *entities.EstadoCamion) (*entities
 	if estado.Estado == "" {
 		return nil, errors.New("el estado es necesario")
 	}
-	
-	return uc.repo.Save(estado)
+
+	return uc.repo.Save(ctx, tenantID, estado)
 }

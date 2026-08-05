@@ -1,12 +1,16 @@
 package ports
 
-import "github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
+import (
+	"context"
+
+	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
+)
 
 type IRuta interface {
-	Save(ruta *entities.Ruta) error
-	ListAll() ([]entities.Ruta, error)
-	GetById(id int32) (*entities.Ruta, error)
-	Update(ruta *entities.Ruta) error
-	Delete(id int32) error
-	GetActivas() ([]entities.Ruta, error)
+	Save(ctx context.Context, tenantID int, ruta *entities.Ruta) error
+	ListAll(ctx context.Context, tenantID int) ([]entities.Ruta, error)
+	GetById(ctx context.Context, tenantID int, id int32) (*entities.Ruta, error)
+	Update(ctx context.Context, tenantID int, ruta *entities.Ruta) error
+	Delete(ctx context.Context, tenantID int, id int32) error
+	GetActivas(ctx context.Context, tenantID int) ([]entities.Ruta, error)
 }

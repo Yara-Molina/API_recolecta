@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"errors"
 
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
@@ -17,10 +18,10 @@ func NewUpdateCamionUseCase(repo ports.ICamion) *UpdateCamionUseCase {
 	}
 }
 
-func (uc *UpdateCamionUseCase) Run(id int32, camion *entities.Camion) (*entities.Camion, error) {
+func (uc *UpdateCamionUseCase) Run(ctx context.Context, tenantID int, id int32, camion *entities.Camion) (*entities.Camion, error) {
 	if id <= 0 {
 		return nil, errors.New("id inválido")
 	}
 
-	return uc.repo.Update(id,camion)
+	return uc.repo.Update(ctx, tenantID, id, camion)
 }

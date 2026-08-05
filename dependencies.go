@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
@@ -57,8 +60,13 @@ import (
 	coloniaApplication "github.com/vicpoo/API_recolecta/src/colonia/application"
 	coloniaHttp "github.com/vicpoo/API_recolecta/src/colonia/infrastructure/http"
 	coloniaPostgres "github.com/vicpoo/API_recolecta/src/colonia/infrastructure/postgres"
+	"github.com/vicpoo/API_recolecta/src/bootstrap"
 	empleadoInfra "github.com/vicpoo/API_recolecta/src/empleado/infrastructure"
+	empleadoRepositoryPkg "github.com/vicpoo/API_recolecta/src/empleado/infrastructure/repository"
 	empleadoRoutes "github.com/vicpoo/API_recolecta/src/empleado/infrastructure/routes"
+	tenantApplication "github.com/vicpoo/API_recolecta/src/tenant/application"
+	tenantHttp "github.com/vicpoo/API_recolecta/src/tenant/infrastructure/http"
+	tenantPostgres "github.com/vicpoo/API_recolecta/src/tenant/infrastructure/postgres"
 	notificacionInfra "github.com/vicpoo/API_recolecta/src/notificacion/infrastructure"
 	appConfig "github.com/vicpoo/API_recolecta/config"
 	//rolInfra "github.com/vicpoo/API_recolecta/src/rol/infrastructure"
@@ -80,6 +88,17 @@ func InitDependencies() {
 	engine.GET("/api/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	db := core.GetBD()
+
+	// Fase D (docs/10-plan-completar-multitenancy.md): crea/actualiza el
+	// usuario SUPERADMIN a partir de SUPERADMIN_EMAIL/USERNAME/PASSWORD si
+	// están configuradas. No detiene el arranque si falta la configuración
+	// o si el seed falla -- un SUPERADMIN es opcional, y el backend debe
+	// seguir funcionando para todo lo demás aunque este paso no se pueda
+	// completar (por ejemplo, en un entorno donde a propósito no se quiere
+	// tener superadmin todavía).
+	if err := bootstrap.SeedSuperAdmin(context.Background(), db); err != nil {
+		fmt.Printf("[seed-superadmin] error al crear/actualizar superadmin: %v\n", err)
+	}
 
 	alertaRepository := alertaPostgres.NewPostgresAlertaRepository(db)
 
@@ -272,12 +291,14 @@ func InitDependencies() {
 
 	puntoRepository := puntoAdapters.NewPostgresPuntoRecoleccion()
 
-	createPuntoUC := puntoUseCases.NewSavePuntoRecoleccionUseCase(puntoRepository)
-	updatePuntoUC := puntoUseCases.NewUpdatePuntoRecoleccionUseCase(puntoRepository)
+	syncRutaJsonUC := rutaUseCases.NewSyncRutaJsonFromPuntosUseCase(rutaRepository, puntoRepository)
+
+	createPuntoUC := puntoUseCases.NewSavePuntoRecoleccionUseCase(puntoRepository, syncRutaJsonUC)
+	updatePuntoUC := puntoUseCases.NewUpdatePuntoRecoleccionUseCase(puntoRepository, syncRutaJsonUC)
 	getAllPuntoUC := puntoUseCases.NewListAllPuntoRecoleccionUseCase(puntoRepository)
 	getPuntoByIdUC := puntoUseCases.NewGetPuntoRecoleccionByIdUseCase(puntoRepository)
 	getPuntoByRutaUC := puntoUseCases.NewGetPuntoRecoleccionByRutaUseCase(puntoRepository)
-	deletePuntoUC := puntoUseCases.NewDeletePuntoRecoleccionUseCase(puntoRepository)
+	deletePuntoUC := puntoUseCases.NewDeletePuntoRecoleccionUseCase(puntoRepository, syncRutaJsonUC)
 
 	createPuntoCTR := puntoControllers.NewCreatePuntoRecoleccionController(createPuntoUC)
 	updatePuntoCTR := puntoControllers.NewUpdatePuntoRecoleccionController(updatePuntoUC)
@@ -504,6 +525,27 @@ func InitDependencies() {
 		empleadoDeps.DeleteEmpleadoController,
 		empleadoDeps.LoginEmpleadoController,
 	)
+
+	// ===============================
+	// TENANT (Fase D — gestión de municipios, solo SUPERADMIN)
+	// ===============================
+
+	tenantRepository := tenantPostgres.NewTenantRepository(db)
+	tenantEmpleadoRepository := empleadoRepositoryPkg.NewEmpleadoPostgresRepository(db)
+
+	createTenantUC := tenantApplication.NewCreateTenantConAdmin(tenantRepository, tenantEmpleadoRepository)
+	getTenantUC := tenantApplication.NewGetTenant(tenantRepository)
+	listTenantsUC := tenantApplication.NewListTenants(tenantRepository)
+	updateTenantUC := tenantApplication.NewUpdateTenant(tenantRepository)
+
+	tenantController := tenantHttp.NewTenantController(
+		createTenantUC,
+		getTenantUC,
+		listTenantsUC,
+		updateTenantUC,
+	)
+
+	tenantController.RegisterRoutes(engine)
 
 	// ===============================
 	// ALERTA USUARIO

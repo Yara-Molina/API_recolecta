@@ -25,6 +25,12 @@ func NewCreatePuntoRecoleccionController(uc *application.SavePuntoRecoleccionUse
 // @Security     BearerAuth
 // @Router       /api/puntos-recoleccion/ [post]
 func (c *CreatePuntoRecoleccionController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	var p entities.PuntoRecoleccion
 
 	if err := ctx.ShouldBindJSON(&p); err != nil {
@@ -32,7 +38,7 @@ func (c *CreatePuntoRecoleccionController) Run(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.uc.Execute(&p)
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID, &p)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "No se pudo crear el punto de recolección", err)
 		return

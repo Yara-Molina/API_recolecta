@@ -30,6 +30,12 @@ func NewDeleteCiudadanoController(useCase *application_ciudadano.DeleteCiudadano
 // @Security     BearerAuth
 // @Router       /api/ciudadanos/{id} [delete]
 func (c *DeleteCiudadanoController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	idParam := ctx.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -37,7 +43,7 @@ func (c *DeleteCiudadanoController) Run(ctx *gin.Context) {
 		return
 	}
 
-	err = c.useCase.Execute(ctx.Request.Context(), id)
+	err = c.useCase.Execute(ctx.Request.Context(), tenantID, id)
 	if err != nil {
 		if err == sql.ErrNoRows || err.Error() == "ciudadano no encontrado" {
 			core.RespondNotFound(ctx, "ciudadano", idParam)

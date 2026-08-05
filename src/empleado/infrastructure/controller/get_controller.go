@@ -27,13 +27,19 @@ func NewGetEmpleadoController(useCase *application.GetEmpleado) *GetEmpleadoCont
 // @Failure      404 {object} core.ErrorResponse
 // @Router       /api/empleados/{id} [get]
 func (c *GetEmpleadoController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondBadRequest(ctx, "id inválido", nil)
 		return
 	}
 
-	result, err := c.useCase.Execute(ctx.Request.Context(), id)
+	result, err := c.useCase.Execute(ctx.Request.Context(), tenantID, id)
 	if err != nil {
 		if err.Error() == "empleado no encontrado" {
 			core.RespondNotFound(ctx, "empleado", strconv.Itoa(id))

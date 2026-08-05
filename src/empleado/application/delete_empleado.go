@@ -14,6 +14,6 @@ func NewDeleteEmpleado(repo domain.EmpleadoRepository) *DeleteEmpleado {
 	return &DeleteEmpleado{repo: repo}
 }
 
-func (uc *DeleteEmpleado) Execute(ctx context.Context, id int) error {
-	return uc.repo.Delete(ctx, id)
+func (uc *DeleteEmpleado) Execute(ctx context.Context, tenantID int, id int) error {
+	return uc.repo.Delete(ctx, tenantID, id)
 }

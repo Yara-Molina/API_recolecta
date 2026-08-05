@@ -2,6 +2,8 @@
 package application
 
 import (
+	"context"
+
 	repositories "github.com/vicpoo/API_recolecta/src/Fallas/domain"
 	"github.com/vicpoo/API_recolecta/src/Fallas/domain/entities"
 )
@@ -14,6 +16,6 @@ func NewGetAnomaliasByFechaRangeUseCase(repo repositories.IAnomalia) *GetAnomali
 	return &GetAnomaliasByFechaRangeUseCase{repo: repo}
 }
 
-func (uc *GetAnomaliasByFechaRangeUseCase) Run(fechaInicio, fechaFin string) ([]entities.Anomalia, error) {
-	return uc.repo.GetByFechaRange(fechaInicio, fechaFin)
+func (uc *GetAnomaliasByFechaRangeUseCase) Run(ctx context.Context, tenantID int, fechaInicio, fechaFin string) ([]entities.Anomalia, error) {
+	return uc.repo.GetByFechaRange(ctx, tenantID, fechaInicio, fechaFin)
 }

@@ -2,6 +2,8 @@
 package infrastructure
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/vicpoo/API_recolecta/src/Fallas/application"
 	"github.com/vicpoo/API_recolecta/src/Fallas/domain/entities"
@@ -30,6 +32,12 @@ func NewCreateAnomaliaController(createUseCase *application.CreateAnomaliaUseCas
 // @Security     BearerAuth
 // @Router       /api/anomalias/ [post]
 func (ctrl *CreateAnomaliaController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondError(c, http.StatusUnauthorized, core.ErrCodeUnauthorized, "tenant no encontrado en token", nil)
+		return
+	}
+
 	var request struct {
 		TipoAnomalia         string `json:"tipo_anomalia" binding:"required"`
 		PuntoID              *int32 `json:"punto_id"`
@@ -109,7 +117,7 @@ func (ctrl *CreateAnomaliaController) Run(c *gin.Context) {
 		request.Lon,
 	)
 
-	createdAnomalia, err := ctrl.createUseCase.Run(anomalia)
+	createdAnomalia, err := ctrl.createUseCase.Run(c.Request.Context(), tenantID, anomalia)
 	if err != nil {
 		core.RespondInternalServerError(c, "No se pudo crear la anomalía", err)
 		return

@@ -36,6 +36,13 @@ func SeedAdmin(ctx context.Context) error {
 	return seedAdminWithConfig(seedCtx, db, cfg)
 }
 
+// seedTenantID es el tenant al que se asigna el admin de bootstrap. Este seed
+// corre al arrancar el proceso, antes de que exista cualquier JWT/contexto de
+// tenant, así que no hay un tenantID real que propagar aquí. Se usa el 1 por
+// convención: es el mismo tenant al que cae el fallback de la política RLS
+// (ver db_constraints.sql, tenant_isolation) y el tenant "raíz" del sistema.
+const seedTenantID = 1
+
 func seedAdminWithConfig(ctx context.Context, db *pgxpool.Pool, cfg AdminSeedConfig) error {
 	if err := ensureAdminRole(ctx, db); err != nil {
 		return err
@@ -60,7 +67,7 @@ func seedAdminWithConfig(ctx context.Context, db *pgxpool.Pool, cfg AdminSeedCon
 		existingByMail.Password = hash
 		existingByMail.Desactivado = false
 		existingByMail.RolID = core.ADMIN
-		if err := repo.Update(ctx, existingByMail); err != nil {
+		if err := repo.Update(ctx, seedTenantID, existingByMail); err != nil {
 			return err
 		}
 		fmt.Printf("admin actualizado por mail %s (id=%d)\n", existingByMail.Mail, existingByMail.ID)
@@ -79,7 +86,7 @@ func seedAdminWithConfig(ctx context.Context, db *pgxpool.Pool, cfg AdminSeedCon
 		existingByUsername.Password = hash
 		existingByUsername.Desactivado = false
 		existingByUsername.RolID = core.ADMIN
-		if err := repo.Update(ctx, existingByUsername); err != nil {
+		if err := repo.Update(ctx, seedTenantID, existingByUsername); err != nil {
 			return err
 		}
 		fmt.Printf("admin actualizado por username %s (id=%d)\n", existingByUsername.Username, existingByUsername.ID)
@@ -98,7 +105,7 @@ func seedAdminWithConfig(ctx context.Context, db *pgxpool.Pool, cfg AdminSeedCon
 		UpdatedAt:   time.Now(),
 	}
 
-	id, err := repo.Create(ctx, empleado)
+	id, err := repo.Create(ctx, seedTenantID, empleado)
 	if err != nil {
 		return err
 	}

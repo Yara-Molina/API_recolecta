@@ -27,6 +27,12 @@ func NewGetAnomaliasByFechaRangeController(getByFechaRangeUseCase *application.G
 // @Security     BearerAuth
 // @Router       /api/anomalias/por-fecha [get]
 func (ctrl *GetAnomaliasByFechaRangeController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	fechaInicio := c.Query("fecha_inicio")
 	fechaFin := c.Query("fecha_fin")
 
@@ -38,7 +44,7 @@ func (ctrl *GetAnomaliasByFechaRangeController) Run(c *gin.Context) {
 		return
 	}
 
-	anomalias, err := ctrl.getByFechaRangeUseCase.Run(fechaInicio, fechaFin)
+	anomalias, err := ctrl.getByFechaRangeUseCase.Run(c.Request.Context(), tenantID, fechaInicio, fechaFin)
 	if err != nil {
 		core.RespondInternalServerError(c, "No se pudieron obtener las anomalías para el rango de fechas", err)
 		return

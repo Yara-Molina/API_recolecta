@@ -27,6 +27,12 @@ func NewCreateEmpleadoController(useCase *application.CreateEmpleado) *CreateEmp
 // @Failure      500 {object} core.ErrorResponse
 // @Router       /api/empleados/ [post]
 func (c *CreateEmpleadoController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	var input application.CreateEmpleadoInput
 
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -34,7 +40,7 @@ func (c *CreateEmpleadoController) Run(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.useCase.Execute(ctx.Request.Context(), input)
+	result, err := c.useCase.Execute(ctx.Request.Context(), tenantID, input)
 	if err != nil {
 		core.RespondBadRequest(ctx, err.Error(), nil)
 		return

@@ -15,6 +15,6 @@ func NewListEmpleado(repo domain.EmpleadoRepository) *ListEmpleado {
 	return &ListEmpleado{repo: repo}
 }
 
-func (uc *ListEmpleado) Execute(ctx context.Context) ([]entities.Empleado, error) {
-	return uc.repo.List(ctx)
+func (uc *ListEmpleado) Execute(ctx context.Context, tenantID int) ([]entities.Empleado, error) {
+	return uc.repo.List(ctx, tenantID)
 }

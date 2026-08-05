@@ -7,11 +7,11 @@ import (
 )
 
 type DomicilioRepository interface {
-	Create(ctx context.Context, d *entities.Domicilio) (int, error)
-	GetByID(ctx context.Context, id int) (*entities.Domicilio, error)
-	List(ctx context.Context) ([]entities.Domicilio, error)
-	ListByCiudadanoID(ctx context.Context, ciudadanoID int) ([]entities.Domicilio, error)
-	Update(ctx context.Context, d *entities.Domicilio) error
-	DeleteByCiudadano(ctx context.Context, id int, ciudadanoID int) error
-	FindByAlias(ctx context.Context, alias string, ciudadanoID int) (*entities.Domicilio, error)
+	Create(ctx context.Context, tenantID int, d *entities.Domicilio) (int, error)
+	GetByID(ctx context.Context, tenantID int, id int) (*entities.Domicilio, error)
+	List(ctx context.Context, tenantID int) ([]entities.Domicilio, error)
+	ListByCiudadanoID(ctx context.Context, tenantID int, ciudadanoID int) ([]entities.Domicilio, error)
+	Update(ctx context.Context, tenantID int, d *entities.Domicilio) error
+	DeleteByCiudadano(ctx context.Context, tenantID int, id int, ciudadanoID int) error
+	FindByAlias(ctx context.Context, tenantID int, alias string, ciudadanoID int) (*entities.Domicilio, error)
 }

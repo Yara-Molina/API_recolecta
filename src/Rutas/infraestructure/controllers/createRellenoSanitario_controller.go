@@ -25,6 +25,12 @@ func NewCreateRellenoSanitarioController(uc *application.SaveRellenoSanitarioUse
 // @Security     BearerAuth
 // @Router       /api/relleno-sanitario/ [post]
 func (c *CreateRellenoSanitarioController) Execute(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
 	var relleno entities.RellenoSanitario
 
 	if err := ctx.ShouldBindJSON(&relleno); err != nil {
@@ -32,7 +38,7 @@ func (c *CreateRellenoSanitarioController) Execute(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.uc.Execute(&relleno)
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID, &relleno)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error creando relleno sanitario", err)
 		return

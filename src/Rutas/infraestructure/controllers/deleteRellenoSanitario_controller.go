@@ -26,13 +26,19 @@ func NewDeleteRellenoSanitarioController(uc *application.DeleteRellenoSanitarioU
 // @Security     BearerAuth
 // @Router       /api/relleno-sanitario/{id} [delete]
 func (c *DeleteRellenoSanitarioController) Execute(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondInvalidInput(ctx, "ID inválido")
 		return
 	}
 
-	if err := c.uc.Execute(int32(id)); err != nil {
+	if err := c.uc.Execute(ctx.Request.Context(), tenantID, int32(id)); err != nil {
 		core.RespondInternalServerError(ctx, "Error eliminando relleno sanitario", err)
 		return
 	}

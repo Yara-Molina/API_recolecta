@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"github.com/vicpoo/API_recolecta/src/Camion/domain/entities"
 	"github.com/vicpoo/API_recolecta/src/Camion/domain/ports"
 )
@@ -14,7 +16,9 @@ func NewGetRutaCamionByCamionIDUseCase(repo ports.RutaCamionRepository) *GetRuta
 }
 
 func (uc *GetRutaCamionByCamionIDUseCase) Execute(
+	ctx context.Context,
+	tenantID int,
 	camionID int32,
 ) ([]entities.RutaCamion, error) {
-	return uc.repo.GetByCamionID(camionID)
+	return uc.repo.GetByCamionID(ctx, tenantID, camionID)
 }

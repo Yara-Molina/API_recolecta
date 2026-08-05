@@ -24,7 +24,13 @@ func NewGetAllRutaController(uc *application.ListAllRutaUseCase) *GetAllRutaCont
 // @Security     BearerAuth
 // @Router       /api/rutas/ [get]
 func (ctr *GetAllRutaController) Run(ctx *gin.Context) {
-	rutas, err := ctr.uc.Run()
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
+	rutas, err := ctr.uc.Run(ctx.Request.Context(), tenantID)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error listando rutas", err)
 		return

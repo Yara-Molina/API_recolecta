@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/vicpoo/API_recolecta/src/Camion/application"
+	"github.com/vicpoo/API_recolecta/src/core"
 )
 
 type GetHistorialByCamionController struct {
@@ -27,13 +28,19 @@ func NewGetHistorialByCamionController(uc *application.GetHistorialByCamionUseCa
 // @Security     BearerAuth
 // @Router       /api/historial-asignacion/camion/{camionId} [get]
 func (ctr *GetHistorialByCamionController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "tenant no encontrado en token"})
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("camionId"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "camionId inválido"})
 		return
 	}
 
-	data, err := ctr.uc.Run(int32(id))
+	data, err := ctr.uc.Run(ctx.Request.Context(), tenantID, int32(id))
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
 		return

@@ -31,6 +31,12 @@ func NewGetAnomaliasByReferenciaIDController(getByReferenciaIDUseCase *applicati
 // @Security     BearerAuth
 // @Router       /api/anomalias/referencia/{referenciaId} [get]
 func (ctrl *GetAnomaliasByReferenciaIDController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	referenciaIDParam := c.Param("referenciaId")
 	referenciaID, err := strconv.Atoi(referenciaIDParam)
 	if err != nil {
@@ -38,7 +44,7 @@ func (ctrl *GetAnomaliasByReferenciaIDController) Run(c *gin.Context) {
 		return
 	}
 
-	anomalias, err := ctrl.getByReferenciaIDUseCase.Run(int32(referenciaID))
+	anomalias, err := ctrl.getByReferenciaIDUseCase.Run(c.Request.Context(), tenantID, int32(referenciaID))
 	if err != nil {
 		core.RespondInternalServerError(c, "No se pudieron obtener las anomalías para la referencia", err)
 		return

@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
 )
@@ -15,6 +17,6 @@ func NewGetPuntoRecoleccionByRutaUseCase(repo ports.IPuntoRecoleccion) *GetPunto
 	}
 }
 
-func (uc *GetPuntoRecoleccionByRutaUseCase) Execute(rutaId int32) ([]entities.PuntoRecoleccion, error) {
-	return uc.repo.GetByRuta(rutaId)
+func (uc *GetPuntoRecoleccionByRutaUseCase) Execute(ctx context.Context, tenantID int, rutaId int32) ([]entities.PuntoRecoleccion, error) {
+	return uc.repo.GetByRuta(ctx, tenantID, rutaId)
 }

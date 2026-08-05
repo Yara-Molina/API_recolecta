@@ -5821,6 +5821,185 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/tenants": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant"
+                ],
+                "summary": "Listar tenants",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.TenantListResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea un tenant nuevo junto con su primer empleado (rol ADMIN). Solo SUPERADMIN.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant"
+                ],
+                "summary": "Crear tenant (municipio) con su admin inicial",
+                "parameters": [
+                    {
+                        "description": "Body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.CreateTenantRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/domain.TenantResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/core.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/core.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/core.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tenants/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant"
+                ],
+                "summary": "Obtener tenant por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del tenant",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.TenantResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/core.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/core.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant"
+                ],
+                "summary": "Actualizar tenant (nombre, activo, logo, área de cobertura)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del tenant",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.UpdateTenantRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.TenantResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/core.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/core.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/tipo-camion/": {
             "get": {
                 "security": [
@@ -6085,6 +6264,26 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.AdminInicialInput": {
+            "type": "object",
+            "properties": {
+                "apellidos": {
+                    "type": "string"
+                },
+                "mail": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.AlertaUsuario": {
             "type": "object",
             "properties": {
@@ -6162,6 +6361,32 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.CreateTenantRequest": {
+            "type": "object",
+            "properties": {
+                "admin": {
+                    "$ref": "#/definitions/domain.AdminInicialInput"
+                },
+                "bbox_max_lat": {
+                    "type": "number"
+                },
+                "bbox_max_lon": {
+                    "type": "number"
+                },
+                "bbox_min_lat": {
+                    "type": "number"
+                },
+                "bbox_min_lon": {
+                    "type": "number"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.SendResult": {
             "type": "object",
             "properties": {
@@ -6170,6 +6395,101 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "domain.Tenant": {
+            "type": "object",
+            "properties": {
+                "activo": {
+                    "type": "boolean"
+                },
+                "bbox_max_lat": {
+                    "type": "number"
+                },
+                "bbox_max_lon": {
+                    "type": "number"
+                },
+                "bbox_min_lat": {
+                    "type": "number"
+                },
+                "bbox_min_lon": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.TenantListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Tenant"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "domain.TenantResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/domain.Tenant"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "domain.UpdateTenantRequest": {
+            "type": "object",
+            "properties": {
+                "activo": {
+                    "type": "boolean"
+                },
+                "bbox_max_lat": {
+                    "type": "number"
+                },
+                "bbox_max_lon": {
+                    "type": "number"
+                },
+                "bbox_min_lat": {
+                    "type": "number"
+                },
+                "bbox_min_lon": {
+                    "type": "number"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "nombre": {
+                    "type": "string"
                 }
             }
         },
@@ -7414,10 +7734,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "conductor_id": {
-                    "description": "ID del conductor asignado (null si no hay asignación activa). Solo se llena en GET /api/rutas/activas.",
+                    "description": "ConductorID es el id_chofer con asignación activa (historial_asignacion_camion)\ndel camión actualmente asignado a la ruta (ruta_camion). Solo lo llena GetActivas.\nswagger:description ID del conductor asignado (null si no hay asignación activa)",
                     "type": "integer",
-                    "example": 12,
-                    "x-nullable": true
+                    "example": 12
                 },
                 "created_at": {
                     "type": "string"
@@ -7447,10 +7766,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "conductor_id": {
-                    "description": "ID del empleado chofer con asignación activa (fecha_baja IS NULL) del camión más reciente de la ruta. Null si no hay asignación.",
+                    "description": "ID del empleado chofer con asignación activa (fecha_baja IS NULL)\ndel camión más reciente de la ruta. Null si no hay asignación.",
                     "type": "integer",
-                    "example": 12,
-                    "x-nullable": true
+                    "example": 12
                 },
                 "created_at": {
                     "type": "string",

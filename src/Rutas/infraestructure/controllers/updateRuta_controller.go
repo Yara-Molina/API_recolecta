@@ -30,6 +30,12 @@ func NewUpdateRutaController(uc *application.UpdateRutaUseCase) *UpdateRutaContr
 // @Security     BearerAuth
 // @Router       /api/rutas/{id} [put]
 func (ctr *UpdateRutaController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		core.RespondInvalidInput(ctx, "ID inválido")
@@ -60,7 +66,7 @@ func (ctr *UpdateRutaController) Run(ctx *gin.Context) {
 		JsonRuta:    string(req.JsonRuta),
 	}
 
-	err = ctr.uc.Run(ruta)
+	err = ctr.uc.Run(ctx.Request.Context(), tenantID, ruta)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error actualizando ruta", err)
 		return

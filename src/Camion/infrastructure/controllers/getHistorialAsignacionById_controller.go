@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/vicpoo/API_recolecta/src/Camion/application"
+	"github.com/vicpoo/API_recolecta/src/core"
 )
 
 type GetHistorialAsignacionByIdController struct {
@@ -25,13 +26,19 @@ func NewGetHistorialAsignacionByIdController(uc *application.GetHistorialAsignac
 // @Security     BearerAuth
 // @Router       /api/historial-asignacion/{id} [get]
 func (ctr *GetHistorialAsignacionByIdController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "tenant no encontrado en token"})
+		return
+	}
+
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "id inválido"})
 		return
 	}
 
-	result, err := ctr.uc.Run(int32(id))
+	result, err := ctr.uc.Run(ctx.Request.Context(), tenantID, int32(id))
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
 		return

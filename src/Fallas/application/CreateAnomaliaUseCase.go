@@ -2,6 +2,7 @@
 package application
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -37,8 +38,8 @@ var tiposConPipeline = map[string]bool{
 	"REPORTE_CONDUCTOR": true,
 }
 
-func (uc *CreateAnomaliaUseCase) Run(anomalia *entities.Anomalia) (*entities.Anomalia, error) {
-	err := uc.repo.Save(anomalia)
+func (uc *CreateAnomaliaUseCase) Run(ctx context.Context, tenantID int, anomalia *entities.Anomalia) (*entities.Anomalia, error) {
+	err := uc.repo.Save(ctx, tenantID, anomalia)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func (uc *CreateAnomaliaUseCase) Run(anomalia *entities.Anomalia) (*entities.Ano
 			CreadoPor: creadoPor,
 			CreatedAt: time.Now(),
 		}
-		_ = uc.alertaRepo.Create(alerta)
+		_ = uc.alertaRepo.Create(context.Background(), tenantID, alerta)
 	}
 
 	// Dispara en background la validacion/clasificacion del reporte. No
@@ -75,10 +76,7 @@ func (uc *CreateAnomaliaUseCase) Run(anomalia *entities.Anomalia) (*entities.Ano
 			origen = "conductor"
 		}
 		log.Println("pipeline reportes: disparando goroutine para anomalia", anomalia.AnomaliaID, "tipo:", tipo, "origen:", origen)
-		// TenantID: por ahora la entidad Anomalia no lo expone (no hay
-		// multi-tenant real todavia en este dominio); se usa el default 1
-		// que ya usa la columna tenant_id en BD.
-		go uc.pipelineUseCase.Run(anomalia.AnomaliaID, anomalia.Descripcion, 1, &origen)
+		go uc.pipelineUseCase.Run(anomalia.AnomaliaID, anomalia.Descripcion, tenantID, &origen)
 	} else {
 		log.Println("pipeline reportes: NO se dispara para anomalia", anomalia.AnomaliaID, "tipo:", tipo, "(pipelineUseCase nil:", uc.pipelineUseCase == nil, ")")
 	}

@@ -29,13 +29,19 @@ func NewGetRegistroVaciadoByRutaCamionIDController(
 // @Security     BearerAuth
 // @Router       /api/registro-vaciado/ruta-camion/{ruta_camion_id} [get]
 func (c *GetRegistroVaciadoByRutaCamionIDController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	rutaCamionID, err := strconv.Atoi(ctx.Param("ruta_camion_id"))
 	if err != nil {
 		core.RespondInvalidInput(ctx, "ruta_camion_id inválido")
 		return
 	}
 
-	result, err := c.uc.Execute(int32(rutaCamionID))
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID, int32(rutaCamionID))
 	if err != nil {
 		core.RespondInternalServerError(ctx, "No se pudieron obtener los registros de vaciado por ruta-camión", err)
 		return

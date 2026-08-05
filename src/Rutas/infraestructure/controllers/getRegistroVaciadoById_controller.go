@@ -29,6 +29,12 @@ func NewGetRegistroVaciadoByIDController(uc *application.GetRegistroVaciadoByIDU
 // @Security     BearerAuth
 // @Router       /api/registro-vaciado/{id} [get]
 func (c *GetRegistroVaciadoByIDController) Run(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondBadRequest(ctx, "tenant no encontrado en token", nil)
+		return
+	}
+
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -36,7 +42,7 @@ func (c *GetRegistroVaciadoByIDController) Run(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.uc.Execute(int32(id))
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID, int32(id))
 	if err != nil {
 		if strings.Contains(err.Error(), "no encontrado") {
 			core.RespondNotFound(ctx, "Registro de vaciado", idStr)

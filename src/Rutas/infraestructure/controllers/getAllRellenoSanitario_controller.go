@@ -22,7 +22,13 @@ func NewGetAllRellenoSanitarioController(uc *application.ListRellenoSanitarioUse
 // @Security     BearerAuth
 // @Router       /api/relleno-sanitario/ [get]
 func (c *GetAllRellenoSanitarioController) Execute(ctx *gin.Context) {
-	result, err := c.uc.Execute()
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error listando rellenos sanitarios", err)
 		return

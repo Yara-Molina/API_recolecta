@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"errors"
 
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
@@ -15,9 +16,9 @@ func NewGetCamionByPlacaUseCase(repo ports.ICamion) *GetCamionByPlacaUseCase {
 	return &GetCamionByPlacaUseCase{repo: repo}
 }
 
-func (uc *GetCamionByPlacaUseCase) Run(placa string) (*entities.Camion, error) {
+func (uc *GetCamionByPlacaUseCase) Run(ctx context.Context, tenantID int, placa string) (*entities.Camion, error) {
 	if placa == "" {
 		return nil, errors.New("la placa es obligatoria")
 	}
-	return uc.repo.GetByPlaca(placa)
+	return uc.repo.GetByPlaca(ctx, tenantID, placa)
 }

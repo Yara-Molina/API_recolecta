@@ -24,8 +24,8 @@ func NewUpdateCiudadano(repo domain.CiudadanoRepository) *UpdateCiudadano {
 	return &UpdateCiudadano{repo: repo}
 }
 
-func (uc *UpdateCiudadano) Execute(ctx context.Context, in UpdateCiudadanoInput) error {
-	ciudadano, err := uc.repo.GetByID(ctx, in.ID)
+func (uc *UpdateCiudadano) Execute(ctx context.Context, tenantID int, in UpdateCiudadanoInput) error {
+	ciudadano, err := uc.repo.GetByID(ctx, tenantID, in.ID)
 	if err != nil {
 		return err
 	}
@@ -85,5 +85,5 @@ func (uc *UpdateCiudadano) Execute(ctx context.Context, in UpdateCiudadanoInput)
 		ciudadano.Password = hash
 	}
 
-	return uc.repo.Update(ctx, ciudadano)
+	return uc.repo.Update(ctx, tenantID, ciudadano)
 }

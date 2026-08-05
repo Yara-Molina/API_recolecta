@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/vicpoo/API_recolecta/src/Camion/application"
+	"github.com/vicpoo/API_recolecta/src/core"
 )
 
 type GetAllRutaCamionController struct {
@@ -25,7 +26,13 @@ func NewGetAllRutaCamionController(
 // @Security     BearerAuth
 // @Router       /api/ruta-camion/ [get]
 func (c *GetAllRutaCamionController) Run(ctx *gin.Context) {
-	result, err := c.uc.Execute()
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "tenant no encontrado en token"})
+		return
+	}
+
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

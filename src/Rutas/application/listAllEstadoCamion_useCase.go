@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/entities"
 	"github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
 )
@@ -15,8 +17,8 @@ func NewListAllEstadoCamionUseCase(IEstadoCamion ports.IEstadoCamion) *ListAllEs
 	}
 }
 
-func (uc *ListAllEstadoCamionUseCase) Run() ([]entities.EstadoCamion, error) {
-	estadosCamion, err := uc.IEstadoCamion.ListAll()
+func (uc *ListAllEstadoCamionUseCase) Run(ctx context.Context, tenantID int) ([]entities.EstadoCamion, error) {
+	estadosCamion, err := uc.IEstadoCamion.ListAll(ctx, tenantID)
 
 	if err != nil {
 		return nil, err

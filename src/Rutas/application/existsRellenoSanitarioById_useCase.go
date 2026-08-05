@@ -1,6 +1,10 @@
 package application
 
-import "github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
+import (
+	"context"
+
+	"github.com/vicpoo/API_recolecta/src/Rutas/domain/ports"
+)
 
 type ExistsRellenoSanitarioByIdUseCase struct {
 	repo ports.RellenoSanitarioRepository
@@ -13,7 +17,9 @@ func NewExistsRellenoSanitarioByIdUseCase(
 }
 
 func (uc *ExistsRellenoSanitarioByIdUseCase) Execute(
+	ctx context.Context,
+	tenantID int,
 	id int32,
 ) (bool, error) {
-	return uc.repo.ExistsByID(id)
+	return uc.repo.ExistsByID(ctx, tenantID, id)
 }

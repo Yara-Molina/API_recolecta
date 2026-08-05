@@ -26,6 +26,12 @@ func NewGetRellenoSanitarioByNombreController(
 // @Security     BearerAuth
 // @Router       /api/relleno-sanitario/buscar [get]
 func (c *GetRellenoSanitarioByNombreController) Execute(ctx *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(ctx)
+	if !ok {
+		core.RespondInvalidInput(ctx, "tenant no encontrado en token")
+		return
+	}
+
 	nombre := ctx.Query("nombre")
 
 	if nombre == "" {
@@ -33,7 +39,7 @@ func (c *GetRellenoSanitarioByNombreController) Execute(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.uc.Execute(nombre)
+	result, err := c.uc.Execute(ctx.Request.Context(), tenantID, nombre)
 	if err != nil {
 		core.RespondInternalServerError(ctx, "Error buscando relleno sanitario", err)
 		return

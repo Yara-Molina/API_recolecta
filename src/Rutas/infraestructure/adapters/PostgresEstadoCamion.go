@@ -25,21 +25,24 @@ func NewPostgresEstadoCamion() ports.IEstadoCamion {
 //
 // CREATE
 //
-func (pg *PostgresEstadoCamion) Save(estado *entities.EstadoCamion) (*entities.EstadoCamion, error) {
-	sql := `
-	INSERT INTO estado_camion (camion_id, estado, observaciones, timestamp)
-	VALUES ($1, $2, $3, $4)
-	RETURNING estado_id
-	`
+func (pg *PostgresEstadoCamion) Save(ctx context.Context, tenantID int, estado *entities.EstadoCamion) (*entities.EstadoCamion, error) {
+	err := core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		INSERT INTO estado_camion (camion_id, estado, observaciones, timestamp, tenant_id)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING estado_id
+		`
 
-	err := pg.conn.QueryRow(
-		context.Background(),
-		sql,
-		estado.CamionID,
-		estado.Estado,
-		estado.Observaciones,
-		estado.Timestamp, 
-	).Scan(&estado.EstadoID)
+		return tx.QueryRow(
+			ctx,
+			sql,
+			estado.CamionID,
+			estado.Estado,
+			estado.Observaciones,
+			estado.Timestamp,
+			tenantID,
+		).Scan(&estado.EstadoID)
+	})
 
 	if err != nil {
 		return nil, err
@@ -48,31 +51,32 @@ func (pg *PostgresEstadoCamion) Save(estado *entities.EstadoCamion) (*entities.E
 	return estado, nil
 }
 
-
 //
 // GET BY ID
 //
-func (pg *PostgresEstadoCamion) GetById(id int32) (*entities.EstadoCamion, error) {
+func (pg *PostgresEstadoCamion) GetById(ctx context.Context, tenantID int, id int32) (*entities.EstadoCamion, error) {
 	var estado entities.EstadoCamion
 
-	sql := `
-	SELECT 
-		estado_id,
-		camion_id,
-		estado,
-		timestamp,
-		observaciones
-	FROM estado_camion
-	WHERE estado_id = $1
-	`
+	err := core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		SELECT
+			estado_id,
+			camion_id,
+			estado,
+			timestamp,
+			observaciones
+		FROM estado_camion
+		WHERE estado_id = $1 AND tenant_id = $2
+		`
 
-	err := pg.conn.QueryRow(context.Background(), sql, id).Scan(
-		&estado.EstadoID,
-		&estado.CamionID,
-		&estado.Estado,
-		&estado.Timestamp,
-		&estado.Observaciones,
-	)
+		return tx.QueryRow(ctx, sql, id, tenantID).Scan(
+			&estado.EstadoID,
+			&estado.CamionID,
+			&estado.Estado,
+			&estado.Timestamp,
+			&estado.Observaciones,
+		)
+	})
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -87,40 +91,49 @@ func (pg *PostgresEstadoCamion) GetById(id int32) (*entities.EstadoCamion, error
 //
 // LIST ALL
 //
-func (pg *PostgresEstadoCamion) ListAll() ([]entities.EstadoCamion, error) {
-	sql := `
-	SELECT 
-		estado_id,
-		camion_id,
-		estado,
-		timestamp,
-		observaciones
-	FROM estado_camion
-	ORDER BY estado_id DESC
-	`
-
-	rows, err := pg.conn.Query(context.Background(), sql)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
+func (pg *PostgresEstadoCamion) ListAll(ctx context.Context, tenantID int) ([]entities.EstadoCamion, error) {
 	var estados []entities.EstadoCamion
 
-	for rows.Next() {
-		var estado entities.EstadoCamion
-		err := rows.Scan(
-			&estado.EstadoID,
-			&estado.CamionID,
-			&estado.Estado,
-			&estado.Timestamp,
-			&estado.Observaciones,
-		)
+	err := core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		SELECT
+			estado_id,
+			camion_id,
+			estado,
+			timestamp,
+			observaciones
+		FROM estado_camion
+		WHERE tenant_id = $1
+		ORDER BY estado_id DESC
+		`
+
+		rows, err := tx.Query(ctx, sql, tenantID)
 		if err != nil {
-			return nil, err
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var estado entities.EstadoCamion
+			err := rows.Scan(
+				&estado.EstadoID,
+				&estado.CamionID,
+				&estado.Estado,
+				&estado.Timestamp,
+				&estado.Observaciones,
+			)
+			if err != nil {
+				return err
+			}
+
+			estados = append(estados, estado)
 		}
 
-		estados = append(estados, estado)
+		return rows.Err()
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return estados, nil
@@ -129,25 +142,28 @@ func (pg *PostgresEstadoCamion) ListAll() ([]entities.EstadoCamion, error) {
 //
 // UPDATE
 //
-func (pg *PostgresEstadoCamion) Update(id int32, estado *entities.EstadoCamion) (*entities.EstadoCamion, error) {
-	sql := `
-	UPDATE estado_camion
-	SET
-		camion_id = $1,
-		estado = $2,
-		observaciones = $3
-	WHERE estado_id = $4
-	RETURNING timestamp
-	`
+func (pg *PostgresEstadoCamion) Update(ctx context.Context, tenantID int, id int32, estado *entities.EstadoCamion) (*entities.EstadoCamion, error) {
+	err := core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		UPDATE estado_camion
+		SET
+			camion_id = $1,
+			estado = $2,
+			observaciones = $3
+		WHERE estado_id = $4 AND tenant_id = $5
+		RETURNING timestamp
+		`
 
-	err := pg.conn.QueryRow(
-		context.Background(),
-		sql,
-		estado.CamionID,
-		estado.Estado,
-		estado.Observaciones,
-		id,
-	).Scan(&estado.Timestamp)
+		return tx.QueryRow(
+			ctx,
+			sql,
+			estado.CamionID,
+			estado.Estado,
+			estado.Observaciones,
+			id,
+			tenantID,
+		).Scan(&estado.Timestamp)
+	})
 
 	if err != nil {
 		return nil, err
@@ -157,12 +173,14 @@ func (pg *PostgresEstadoCamion) Update(id int32, estado *entities.EstadoCamion) 
 	return estado, nil
 }
 
-func (pg *PostgresEstadoCamion) Delete(id int32) error {
-	sql := `
-	DELETE FROM estado_camion
-	WHERE estado_id = $1
-	`
+func (pg *PostgresEstadoCamion) Delete(ctx context.Context, tenantID int, id int32) error {
+	return core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		DELETE FROM estado_camion
+		WHERE estado_id = $1 AND tenant_id = $2
+		`
 
-	_, err := pg.conn.Exec(context.Background(), sql, id)
-	return err
+		_, err := tx.Exec(ctx, sql, id, tenantID)
+		return err
+	})
 }

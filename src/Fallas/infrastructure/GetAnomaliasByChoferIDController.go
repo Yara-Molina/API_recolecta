@@ -28,6 +28,12 @@ func NewGetAnomaliasByChoferIDController(getByChoferIDUseCase *application.GetAn
 // @Security     BearerAuth
 // @Router       /api/anomalias/chofer/{choferId} [get]
 func (ctrl *GetAnomaliasByChoferIDController) Run(c *gin.Context) {
+	tenantID, ok := core.TenantIDFromContext(c)
+	if !ok {
+		core.RespondBadRequest(c, "tenant no encontrado en token", nil)
+		return
+	}
+
 	choferIDParam := c.Param("choferId")
 	choferID, err := strconv.Atoi(choferIDParam)
 	if err != nil {
@@ -35,7 +41,7 @@ func (ctrl *GetAnomaliasByChoferIDController) Run(c *gin.Context) {
 		return
 	}
 
-	anomalias, err := ctrl.getByChoferIDUseCase.Run(int32(choferID))
+	anomalias, err := ctrl.getByChoferIDUseCase.Run(c.Request.Context(), tenantID, int32(choferID))
 	if err != nil {
 		core.RespondInternalServerError(c, "No se pudieron obtener las anomalías para el chofer", err)
 		return

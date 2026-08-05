@@ -15,6 +15,6 @@ func NewGetEmpleado(repo domain.EmpleadoRepository) *GetEmpleado {
 	return &GetEmpleado{repo: repo}
 }
 
-func (uc *GetEmpleado) Execute(ctx context.Context, id int) (*entities.Empleado, error) {
-	return uc.repo.GetByID(ctx, id)
+func (uc *GetEmpleado) Execute(ctx context.Context, tenantID int, id int) (*entities.Empleado, error) {
+	return uc.repo.GetByID(ctx, tenantID, id)
 }

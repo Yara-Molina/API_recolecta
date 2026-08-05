@@ -2,6 +2,8 @@
 package application
 
 import (
+	"context"
+
 	repositories "github.com/vicpoo/API_recolecta/src/Fallas/domain"
 	"github.com/vicpoo/API_recolecta/src/Fallas/domain/entities"
 )
@@ -14,6 +16,6 @@ func NewGetAllAnomaliasUseCase(repo repositories.IAnomalia) *GetAllAnomaliasUseC
 	return &GetAllAnomaliasUseCase{repo: repo}
 }
 
-func (uc *GetAllAnomaliasUseCase) Run() ([]entities.Anomalia, error) {
-	return uc.repo.GetAll()
+func (uc *GetAllAnomaliasUseCase) Run(ctx context.Context, tenantID int) ([]entities.Anomalia, error) {
+	return uc.repo.GetAll(ctx, tenantID)
 }

@@ -25,31 +25,35 @@ func NewPostgresRellenoSanitario() ports.RellenoSanitarioRepository {
 //
 // CREATE
 //
-func (pg *PostgresRellenoSanitario) Save(relleno *entities.RellenoSanitario) (*entities.RellenoSanitario, error) {
-	sql := `
-	INSERT INTO relleno_sanitario (
-		nombre,
-		direccion,
-		es_rentado,
-		capacidad_toneladas
-	)
-	VALUES ($1, $2, $3, $4)
-	RETURNING
-		relleno_id,
-		eliminado
-	`
+func (pg *PostgresRellenoSanitario) Save(ctx context.Context, tenantID int, relleno *entities.RellenoSanitario) (*entities.RellenoSanitario, error) {
+	err := core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		INSERT INTO relleno_sanitario (
+			nombre,
+			direccion,
+			es_rentado,
+			capacidad_toneladas,
+			tenant_id
+		)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING
+			relleno_id,
+			eliminado
+		`
 
-	err := pg.conn.QueryRow(
-		context.Background(),
-		sql,
-		relleno.Nombre,
-		relleno.Direccion,
-		relleno.EsRentado,
-		relleno.CapacidadToneladas,
-	).Scan(
-		&relleno.RellenoID,
-		&relleno.Eliminado,
-	)
+		return tx.QueryRow(
+			ctx,
+			sql,
+			relleno.Nombre,
+			relleno.Direccion,
+			relleno.EsRentado,
+			relleno.CapacidadToneladas,
+			tenantID,
+		).Scan(
+			&relleno.RellenoID,
+			&relleno.Eliminado,
+		)
+	})
 
 	if err != nil {
 		return nil, err
@@ -61,34 +65,38 @@ func (pg *PostgresRellenoSanitario) Save(relleno *entities.RellenoSanitario) (*e
 //
 // GET BY ID
 //
-func (pg *PostgresRellenoSanitario) GetByID(id int32) (*entities.RellenoSanitario, error) {
+func (pg *PostgresRellenoSanitario) GetByID(ctx context.Context, tenantID int, id int32) (*entities.RellenoSanitario, error) {
 	var relleno entities.RellenoSanitario
 
-	sql := `
-	SELECT
-		relleno_id,
-		nombre,
-		direccion,
-		es_rentado,
-		eliminado,
-		capacidad_toneladas
-	FROM relleno_sanitario
-	WHERE relleno_id = $1
-	  AND eliminado = false
-	`
+	err := core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		SELECT
+			relleno_id,
+			nombre,
+			direccion,
+			es_rentado,
+			eliminado,
+			capacidad_toneladas
+		FROM relleno_sanitario
+		WHERE relleno_id = $1
+		  AND eliminado = false
+		  AND tenant_id = $2
+		`
 
-	err := pg.conn.QueryRow(
-		context.Background(),
-		sql,
-		id,
-	).Scan(
-		&relleno.RellenoID,
-		&relleno.Nombre,
-		&relleno.Direccion,
-		&relleno.EsRentado,
-		&relleno.Eliminado,
-		&relleno.CapacidadToneladas,
-	)
+		return tx.QueryRow(
+			ctx,
+			sql,
+			id,
+			tenantID,
+		).Scan(
+			&relleno.RellenoID,
+			&relleno.Nombre,
+			&relleno.Direccion,
+			&relleno.EsRentado,
+			&relleno.Eliminado,
+			&relleno.CapacidadToneladas,
+		)
+	})
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -103,42 +111,51 @@ func (pg *PostgresRellenoSanitario) GetByID(id int32) (*entities.RellenoSanitari
 //
 // LIST ALL
 //
-func (pg *PostgresRellenoSanitario) ListAll() ([]entities.RellenoSanitario, error) {
-	sql := `
-	SELECT
-		relleno_id,
-		nombre,
-		direccion,
-		es_rentado,
-		eliminado,
-		capacidad_toneladas
-	FROM relleno_sanitario
-	WHERE eliminado = false
-	ORDER BY relleno_id DESC
-	`
-
-	rows, err := pg.conn.Query(context.Background(), sql)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
+func (pg *PostgresRellenoSanitario) ListAll(ctx context.Context, tenantID int) ([]entities.RellenoSanitario, error) {
 	var rellenos []entities.RellenoSanitario
 
-	for rows.Next() {
-		var r entities.RellenoSanitario
-		err := rows.Scan(
-			&r.RellenoID,
-			&r.Nombre,
-			&r.Direccion,
-			&r.EsRentado,
-			&r.Eliminado,
-			&r.CapacidadToneladas,
-		)
+	err := core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		SELECT
+			relleno_id,
+			nombre,
+			direccion,
+			es_rentado,
+			eliminado,
+			capacidad_toneladas
+		FROM relleno_sanitario
+		WHERE eliminado = false
+		  AND tenant_id = $1
+		ORDER BY relleno_id DESC
+		`
+
+		rows, err := tx.Query(ctx, sql, tenantID)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		rellenos = append(rellenos, r)
+		defer rows.Close()
+
+		for rows.Next() {
+			var r entities.RellenoSanitario
+			err := rows.Scan(
+				&r.RellenoID,
+				&r.Nombre,
+				&r.Direccion,
+				&r.EsRentado,
+				&r.Eliminado,
+				&r.CapacidadToneladas,
+			)
+			if err != nil {
+				return err
+			}
+			rellenos = append(rellenos, r)
+		}
+
+		return rows.Err()
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return rellenos, nil
@@ -147,28 +164,32 @@ func (pg *PostgresRellenoSanitario) ListAll() ([]entities.RellenoSanitario, erro
 //
 // UPDATE
 //
-func (pg *PostgresRellenoSanitario) Update(id int32, relleno *entities.RellenoSanitario) (*entities.RellenoSanitario, error) {
-	sql := `
-	UPDATE relleno_sanitario
-	SET
-		nombre = $1,
-		direccion = $2,
-		es_rentado = $3,
-		capacidad_toneladas = $4
-	WHERE relleno_id = $5
-	  AND eliminado = false
-	RETURNING eliminado
-	`
+func (pg *PostgresRellenoSanitario) Update(ctx context.Context, tenantID int, id int32, relleno *entities.RellenoSanitario) (*entities.RellenoSanitario, error) {
+	err := core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		UPDATE relleno_sanitario
+		SET
+			nombre = $1,
+			direccion = $2,
+			es_rentado = $3,
+			capacidad_toneladas = $4
+		WHERE relleno_id = $5
+		  AND eliminado = false
+		  AND tenant_id = $6
+		RETURNING eliminado
+		`
 
-	err := pg.conn.QueryRow(
-		context.Background(),
-		sql,
-		relleno.Nombre,
-		relleno.Direccion,
-		relleno.EsRentado,
-		relleno.CapacidadToneladas,
-		id,
-	).Scan(&relleno.Eliminado)
+		return tx.QueryRow(
+			ctx,
+			sql,
+			relleno.Nombre,
+			relleno.Direccion,
+			relleno.EsRentado,
+			relleno.CapacidadToneladas,
+			id,
+			tenantID,
+		).Scan(&relleno.Eliminado)
+	})
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -183,56 +204,74 @@ func (pg *PostgresRellenoSanitario) Update(id int32, relleno *entities.RellenoSa
 //
 // DELETE (lógico)
 //
-func (pg *PostgresRellenoSanitario) Delete(id int32) error {
-	sql := `
-	UPDATE relleno_sanitario
-	SET eliminado = true
-	WHERE relleno_id = $1
-	`
+func (pg *PostgresRellenoSanitario) Delete(ctx context.Context, tenantID int, id int32) error {
+	return core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		UPDATE relleno_sanitario
+		SET eliminado = true
+		WHERE relleno_id = $1
+		  AND tenant_id = $2
+		`
 
-	_, err := pg.conn.Exec(context.Background(), sql, id)
-	return err
+		cmd, err := tx.Exec(ctx, sql, id, tenantID)
+		if err != nil {
+			return err
+		}
+		if cmd.RowsAffected() == 0 {
+			return errors.New("relleno_sanitario no encontrado")
+		}
+		return nil
+	})
 }
 
 //
 // GET BY NOMBRE
 //
-func (pg *PostgresRellenoSanitario) GetByNombre(nombre string) ([]entities.RellenoSanitario, error) {
-	sql := `
-	SELECT
-		relleno_id,
-		nombre,
-		direccion,
-		es_rentado,
-		eliminado,
-		capacidad_toneladas
-	FROM relleno_sanitario
-	WHERE LOWER(nombre) LIKE LOWER($1)
-	  AND eliminado = false
-	`
-
-	rows, err := pg.conn.Query(context.Background(), sql, "%"+nombre+"%")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
+func (pg *PostgresRellenoSanitario) GetByNombre(ctx context.Context, tenantID int, nombre string) ([]entities.RellenoSanitario, error) {
 	var rellenos []entities.RellenoSanitario
 
-	for rows.Next() {
-		var r entities.RellenoSanitario
-		err := rows.Scan(
-			&r.RellenoID,
-			&r.Nombre,
-			&r.Direccion,
-			&r.EsRentado,
-			&r.Eliminado,
-			&r.CapacidadToneladas,
-		)
+	err := core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		SELECT
+			relleno_id,
+			nombre,
+			direccion,
+			es_rentado,
+			eliminado,
+			capacidad_toneladas
+		FROM relleno_sanitario
+		WHERE LOWER(nombre) LIKE LOWER($1)
+		  AND eliminado = false
+		  AND tenant_id = $2
+		`
+
+		rows, err := tx.Query(ctx, sql, "%"+nombre+"%", tenantID)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		rellenos = append(rellenos, r)
+		defer rows.Close()
+
+		for rows.Next() {
+			var r entities.RellenoSanitario
+			err := rows.Scan(
+				&r.RellenoID,
+				&r.Nombre,
+				&r.Direccion,
+				&r.EsRentado,
+				&r.Eliminado,
+				&r.CapacidadToneladas,
+			)
+			if err != nil {
+				return err
+			}
+			rellenos = append(rellenos, r)
+		}
+
+		return rows.Err()
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return rellenos, nil
@@ -241,17 +280,22 @@ func (pg *PostgresRellenoSanitario) GetByNombre(nombre string) ([]entities.Relle
 //
 // EXISTS BY ID
 //
-func (pg *PostgresRellenoSanitario) ExistsByID(id int32) (bool, error) {
-	sql := `
-	SELECT EXISTS (
-		SELECT 1
-		FROM relleno_sanitario
-		WHERE relleno_id = $1
-		  AND eliminado = false
-	)
-	`
-
+func (pg *PostgresRellenoSanitario) ExistsByID(ctx context.Context, tenantID int, id int32) (bool, error) {
 	var exists bool
-	err := pg.conn.QueryRow(context.Background(), sql, id).Scan(&exists)
+
+	err := core.RunInTenantTx(ctx, pg.conn, tenantID, func(tx pgx.Tx) error {
+		sql := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM relleno_sanitario
+			WHERE relleno_id = $1
+			  AND eliminado = false
+			  AND tenant_id = $2
+		)
+		`
+
+		return tx.QueryRow(ctx, sql, id, tenantID).Scan(&exists)
+	})
+
 	return exists, err
 }
