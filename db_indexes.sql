@@ -202,6 +202,17 @@ BEGIN
     END IF;
 END $$;
 
+-- Dominio de rutas (migrations/2026-09-24_dominio_rutas.sql).
+-- Una ruta activa por conductor: antes solo lo validaba el dashboard.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ruta_activa_por_conductor
+    ON ruta (tenant_id, conductor_id)
+    WHERE activa AND deleted_at IS NULL AND conductor_id IS NOT NULL;
+
+-- Lectura habitual: los puntos vivos de una ruta en orden de recorrido.
+CREATE INDEX IF NOT EXISTS idx_ruta_orden_punto_recoleccion
+    ON punto_recoleccion (ruta_id, orden)
+    WHERE deleted_at IS NULL;
+
 DO $$
 BEGIN
     IF NOT EXISTS (

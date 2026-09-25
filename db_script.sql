@@ -206,12 +206,22 @@ CREATE TABLE IF NOT EXISTS ruta_camion (
   deleted_at TIMESTAMP DEFAULT NULL
 );
 
+-- ruta y punto_recoleccion: esquema del dominio de rutas propio. En BDs
+-- existentes lo aplica migrations/2026-09-24_dominio_rutas.sql (y el bloque
+-- "DOMINIO DE RUTAS" de db_constraints.sql).
 CREATE TABLE IF NOT EXISTS ruta (
   id SERIAL PRIMARY KEY,
   tenant_id INTEGER NOT NULL DEFAULT 1,
-  nombre VARCHAR(100) NOT NULL,
-  descripcion VARCHAR(255) NOT NULL,
-  colonia_id INTEGER NOT NULL,
+  nombre VARCHAR(150) NOT NULL,
+  descripcion TEXT NULL,
+  zona VARCHAR(100) NULL,
+  colonia_id INTEGER NULL,
+  dias_recoleccion JSONB NULL,
+  frecuencia_semanal SMALLINT NULL,
+  turno VARCHAR(20) NULL,
+  conductor_id INTEGER NULL,
+  activa BOOLEAN NOT NULL DEFAULT TRUE,
+  distancia_total DOUBLE PRECISION NULL,
   json_ruta JSON NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -222,8 +232,21 @@ CREATE TABLE IF NOT EXISTS punto_recoleccion (
   id SERIAL PRIMARY KEY,
   tenant_id INTEGER NOT NULL DEFAULT 1,
   ruta_id INTEGER NOT NULL,
-  direccion VARCHAR(255) NOT NULL,
-  orden DOUBLE PRECISION DEFAULT 0.0,
+  orden INTEGER DEFAULT 0,
+  nombre VARCHAR(150) NULL,
+  direccion TEXT NULL,
+  lat DOUBLE PRECISION NULL,
+  lon DOUBLE PRECISION NULL,
+  calle VARCHAR(200) NULL,
+  colonia VARCHAR(150) NULL,
+  municipio VARCHAR(150) NULL,
+  estado VARCHAR(100) NULL,
+  cp VARCHAR(10) NULL,
+  es_inicio BOOLEAN NOT NULL DEFAULT FALSE,
+  es_fin BOOLEAN NOT NULL DEFAULT FALSE,
+  es_esquina BOOLEAN NOT NULL DEFAULT FALSE,
+  distancia_segmento DOUBLE PRECISION NULL,
+  instruccion TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   deleted_at TIMESTAMP DEFAULT NULL

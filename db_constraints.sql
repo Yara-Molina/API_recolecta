@@ -352,12 +352,110 @@ BEGIN
     ) THEN
         ALTER TABLE ruta ADD CONSTRAINT chk_nombre_ruta CHECK (nombre <> '');
     END IF;
+END $$;
+
+-- =====================
+-- DOMINIO DE RUTAS: COLUMNAS Y RESTRICCIONES
+-- =====================
+-- Mismo contenido que migrations/2026-09-24_dominio_rutas.sql; si se toca uno,
+-- tocar el otro. Va aqui porque CREATE TABLE IF NOT EXISTS no modifica una
+-- tabla que ya existe, y init-database.sh vuelve a correr este archivo sobre
+-- BDs existentes: sin estas columnas, las restricciones de abajo fallarian,
+-- y en silencio, porque psql -f no usa ON_ERROR_STOP.
+--
+-- uq_nombre_ruta se elimina (api_rutas admite nombres repetidos). Antes se
+-- buscaba en check_constraints, donde una UNIQUE nunca aparece, asi que cada
+-- ejecucion intentaba crearla de nuevo.
+
+ALTER TABLE ruta
+  ADD COLUMN IF NOT EXISTS zona               VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS dias_recoleccion   JSONB,
+  ADD COLUMN IF NOT EXISTS frecuencia_semanal SMALLINT,
+  ADD COLUMN IF NOT EXISTS turno              VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS conductor_id       INTEGER,
+  ADD COLUMN IF NOT EXISTS activa             BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS distancia_total    DOUBLE PRECISION;
+
+ALTER TABLE ruta ALTER COLUMN colonia_id  DROP NOT NULL;
+ALTER TABLE ruta ALTER COLUMN descripcion DROP NOT NULL;
+ALTER TABLE ruta ALTER COLUMN descripcion TYPE TEXT;
+ALTER TABLE ruta ALTER COLUMN nombre      TYPE VARCHAR(150);
+ALTER TABLE ruta DROP CONSTRAINT IF EXISTS uq_nombre_ruta;
+
+ALTER TABLE punto_recoleccion
+  ADD COLUMN IF NOT EXISTS nombre             VARCHAR(150),
+  ADD COLUMN IF NOT EXISTS lat                DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS lon                DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS calle              VARCHAR(200),
+  ADD COLUMN IF NOT EXISTS colonia            VARCHAR(150),
+  ADD COLUMN IF NOT EXISTS municipio          VARCHAR(150),
+  ADD COLUMN IF NOT EXISTS estado             VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS cp                 VARCHAR(10),
+  ADD COLUMN IF NOT EXISTS es_inicio          BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS es_fin             BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS es_esquina         BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS distancia_segmento DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS instruccion        TEXT;
+
+ALTER TABLE punto_recoleccion ALTER COLUMN direccion DROP NOT NULL;
+ALTER TABLE punto_recoleccion ALTER COLUMN direccion TYPE TEXT;
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'punto_recoleccion'
+          AND column_name = 'orden'
+          AND data_type <> 'integer'
+    ) THEN
+        ALTER TABLE punto_recoleccion ALTER COLUMN orden DROP DEFAULT;
+        ALTER TABLE punto_recoleccion ALTER COLUMN orden TYPE INTEGER USING round(orden)::integer;
+        ALTER TABLE punto_recoleccion ALTER COLUMN orden SET DEFAULT 0;
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'fk_ruta_conductor'
+    ) THEN
+        ALTER TABLE ruta ADD CONSTRAINT fk_ruta_conductor
+            FOREIGN KEY (conductor_id) REFERENCES empleado(id) ON DELETE SET NULL;
+    END IF;
 
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.check_constraints
-        WHERE constraint_name = 'uq_nombre_ruta'
+        WHERE constraint_name = 'chk_frecuencia_semanal_ruta'
     ) THEN
-        ALTER TABLE ruta ADD CONSTRAINT uq_nombre_ruta UNIQUE (nombre);
+        ALTER TABLE ruta ADD CONSTRAINT chk_frecuencia_semanal_ruta
+            CHECK (frecuencia_semanal BETWEEN 1 AND 7);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.check_constraints
+        WHERE constraint_name = 'chk_turno_ruta'
+    ) THEN
+        ALTER TABLE ruta ADD CONSTRAINT chk_turno_ruta
+            CHECK (turno IN ('matutino', 'vespertino', 'nocturno'));
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.check_constraints
+        WHERE constraint_name = 'chk_dias_recoleccion_ruta'
+    ) THEN
+        ALTER TABLE ruta ADD CONSTRAINT chk_dias_recoleccion_ruta
+            CHECK (jsonb_typeof(dias_recoleccion) = 'array');
+    END IF;
+
+    -- NOT VALID: exige coordenadas a toda fila nueva sin revisar las
+    -- anteriores a la migracion. La fase 6 las limpia y valida.
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.check_constraints
+        WHERE constraint_name = 'chk_coordenadas_punto_recoleccion'
+    ) THEN
+        ALTER TABLE punto_recoleccion ADD CONSTRAINT chk_coordenadas_punto_recoleccion
+            CHECK (lat IS NOT NULL AND lon IS NOT NULL) NOT VALID;
     END IF;
 END $$;
 
