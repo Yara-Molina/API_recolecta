@@ -19,9 +19,9 @@ func LoadConfig() (*Config, error) {
 		RedisPort:          os.Getenv("REDIS_PORT"),
 		RedisPassword:      os.Getenv("REDIS_PASSWORD"),
 		FCMCredentialsFile: os.Getenv("FCM_CREDENTIALS_FILE"),
-		ModeloReportesURL: getEnvOrDefault("MODELO_REPORTES_URL"),
-		ClasificadorURL:   getEnvOrDefault("CLASIFICADOR_URL"),
-		AnomaliaCreadaWebhookURL: getEnvOrDefault("ANOMALIA_CREADA_WEBHOOK_URL"),
+		ModeloReportesURL: getEnvOrDefault("MODELO_REPORTES_URL", "http://modelo_reportes:8000"),
+		ClasificadorURL:   getEnvOrDefault("CLASIFICADOR_URL", "http://clasificador_reportes:8001"),
+		AnomaliaCreadaWebhookURL: getEnvOrDefault("ANOMALIA_CREADA_WEBHOOK_URL", "https://api-rutas.practicasoftware.fun/anomalia_creada"),
 
 		APIRutasURL: os.Getenv("API_RUTAS_URL"),
 	}
