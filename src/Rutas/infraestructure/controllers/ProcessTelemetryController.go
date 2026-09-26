@@ -20,11 +20,13 @@ type ProcessTelemetryRequest struct {
 	StateCode string  `json:"state_code" binding:"required"`
 	Lat       float64 `json:"lat" binding:"required"`
 	Lon       float64 `json:"lon" binding:"required"`
+	// RutaID es opcional: sin él no se avisa a los ciudadanos de la ruta.
+	RutaID *int32 `json:"ruta_id"`
 }
 
 // Run
 // @Summary      Procesar telemetría de camión
-// @Description  Actualiza la posición del camión (latitud, longitud), su estado operativo actual en Redis (1: En ruta, 2: Vaciando tolva, 3: Repostando gasolina, 4: Volviendo a base, 5: En base) y registra eventos en la base de datos PostgreSQL.
+// @Description  Actualiza la posición del camión (latitud, longitud), su estado operativo actual en Redis (1: En ruta, 2: Vaciando tolva, 3: Repostando gasolina, 4: Volviendo a base, 5: En base) y, si el estado cambió, lo registra en estado_camion. Con ruta_id, avisa a los ciudadanos de la ruta cuando empieza (1) y cuando termina (5).
 // @Tags         Camion
 // @Accept       json
 // @Produce      json
@@ -44,7 +46,14 @@ func (ctrl *ProcessTelemetryController) Run(c *gin.Context) {
 		return
 	}
 
-	err := ctrl.uc.Execute(c.Request.Context(), req.TruckID, req.StateCode, req.Lat, req.Lon)
+	err := ctrl.uc.Execute(c.Request.Context(), application.TelemetriaCamion{
+		CamionID:    req.TruckID,
+		ConductorID: int32(c.GetInt("user_id")),
+		RutaID:      req.RutaID,
+		Estado:      req.StateCode,
+		Lat:         req.Lat,
+		Lon:         req.Lon,
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

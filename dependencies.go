@@ -89,13 +89,6 @@ func InitDependencies() {
 
 	db := core.GetBD()
 
-	// Fase D (docs/10-plan-completar-multitenancy.md): crea/actualiza el
-	// usuario SUPERADMIN a partir de SUPERADMIN_EMAIL/USERNAME/PASSWORD si
-	// están configuradas. No detiene el arranque si falta la configuración
-	// o si el seed falla -- un SUPERADMIN es opcional, y el backend debe
-	// seguir funcionando para todo lo demás aunque este paso no se pueda
-	// completar (por ejemplo, en un entorno donde a propósito no se quiere
-	// tener superadmin todavía).
 	if err := bootstrap.SeedSuperAdmin(context.Background(), db); err != nil {
 		fmt.Printf("[seed-superadmin] error al crear/actualizar superadmin: %v\n", err)
 	}
@@ -154,8 +147,9 @@ func InitDependencies() {
 	getCamionByModeloCtr := camionControllers.NewGetCamionByModeloController(getCamionByModeloUc)
 
 	// Usecase y controlador de Telemetría
-	processTelemetryUC := rutaCamionApp.NewProcessTruckTelemetryUseCase(redisClient, alertaRepository)
+	processTelemetryUC := rutaCamionApp.NewProcessTruckTelemetryUseCase(redisClient, alertaRepository, notificacionInfra.NewRutaTopicNotifier(fcmClient))
 	telemetryController := camionControllers.NewProcessTelemetryController(processTelemetryUC)
+	estadosCamionesController := camionControllers.NewEstadoCamionesController(rutaCamionApp.NewEstadoCamionesUseCase(redisClient))
 
 	camionRoutes := camionRoutes.NewCamionRoutes(
 		engine, createCamionCtr,
@@ -166,6 +160,7 @@ func InitDependencies() {
 		getCamionByPlacaCtr,
 		getCamionByModeloCtr,
 		telemetryController,
+		estadosCamionesController,
 	)
 	camionRoutes.Run()
 
@@ -271,6 +266,8 @@ func InitDependencies() {
 	processArrivalUC := camionUseCases.NewProcessTruckArrivalUseCase(redisClient, rulesRepo, fcmClient)
 	arrivalController := rutaControllers.NewProcessArrivalController(processArrivalUC)
 
+	apiRutasProxy := rutaControllers.NewApiRutasProxyController(cfg.APIRutasURL)
+
 	rutaRoutes := rutaRoutes.NewRutaRoutes(
 		engine,
 		createRutaCtr,
@@ -280,6 +277,7 @@ func InitDependencies() {
 		deleteRutaCtr,
 		getRutasActivasCtr,
 		arrivalController,
+		apiRutasProxy,
 	)
 
 	rutaRoutes.Run()
@@ -315,6 +313,7 @@ func InitDependencies() {
 		getPuntoByRutaCTR,
 		updatePuntoCTR,
 		deletePuntoCTR,
+		apiRutasProxy,
 	)
 
 	puntoRoutes.Run()

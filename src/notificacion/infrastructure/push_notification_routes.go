@@ -50,16 +50,19 @@ func (r *PushNotificationRouter) Run() {
 	broadcastUc := application.NewBroadcastCitizenNotificationUseCase(fcmClient, core.GetRedis())
 	broadcastCtrl := NewBroadcastCitizenNotificationController(broadcastUc)
 
-	group := r.engine.Group("/api/notificaciones-push")
+	group := r.engine.Group("/api/notificaciones-push", core.JWTAuthMiddleware())
 	{
-		group.POST("/ciudadanos/enviar", ctrl.Run)
-		group.POST("/ciudadanos/difusion", broadcastCtrl.Broadcast)
-		group.POST("/ciudadanos/difusion/ruta/:route_id", broadcastCtrl.BroadcastRoute)
-		group.POST("/ciudadanos/difusion/punto/:point_id", broadcastCtrl.BroadcastPoint)
+		// TODO: el historial no comprueba que citizen_id sea el del token.
 		group.GET("/ciudadanos/:citizen_id/historial", inboxCtrl.GetInbox)
-		group.GET("/fallidas", failedCtrl.GetFailed)
-		group.GET("/eventos/trazas/:event_id", processEventCtrl.GetByEventID)
-		group.GET("/eventos/trazas/camion/:truck_id", processEventCtrl.ListByTruckID)
+
+		operativo := group.Group("", core.RequireRole(core.ADMIN, core.SUPERVISOR, core.COORDINADOR))
+		operativo.POST("/ciudadanos/enviar", ctrl.Run)
+		operativo.POST("/ciudadanos/difusion", broadcastCtrl.Broadcast)
+		operativo.POST("/ciudadanos/difusion/ruta/:route_id", broadcastCtrl.BroadcastRoute)
+		operativo.POST("/ciudadanos/difusion/punto/:point_id", broadcastCtrl.BroadcastPoint)
+		operativo.GET("/fallidas", failedCtrl.GetFailed)
+		operativo.GET("/eventos/trazas/:event_id", processEventCtrl.GetByEventID)
+		operativo.GET("/eventos/trazas/camion/:truck_id", processEventCtrl.ListByTruckID)
 	}
 
 	rulesGroup := r.engine.Group("/api/notificaciones-push/reglas", core.JWTAuthMiddleware())

@@ -17,6 +17,7 @@ type CamionRoutes struct {
 	getCamionByPlaca         *controllers.GetCamionByPlacaController
 	getCamionByModelo        *controllers.GetCamionByModeloController
 	telemetryController      *controllers.ProcessTelemetryController // Controlador de telemetría
+	estadosController        *controllers.EstadoCamionesController
 }
 
 func NewCamionRoutes(
@@ -28,7 +29,8 @@ func NewCamionRoutes(
 	deleteCamionController *controllers.DeleteCamionController,
 	getCamionByPlaca       *controllers.GetCamionByPlacaController,
 	getCamionByModelo      *controllers.GetCamionByModeloController, 
-	telemetryController    *controllers.ProcessTelemetryController, // Inyección de telemetría
+	telemetryController    *controllers.ProcessTelemetryController, 
+	estadosController      *controllers.EstadoCamionesController,
 ) *CamionRoutes {
 	return &CamionRoutes{
 		engine: engine,
@@ -41,14 +43,19 @@ func NewCamionRoutes(
 		getCamionByPlaca: getCamionByPlaca,
 		getCamionByModelo: getCamionByModelo,
 		telemetryController:    telemetryController,
+		estadosController:      estadosController,
 	}
 }
 
 func (camionRoutes *CamionRoutes) Run() {
 	routes := camionRoutes.engine.Group("/api/camion")
 	{
-		// Endpoint protegido para telemetría (solo Conductores con dispositivo validado)
 		routes.POST("/telemetry", core.JWTAuthMiddleware(), core.RequireRole(core.CONDUCTOR), core.DeviceValidationMiddleware(), camionRoutes.telemetryController.Run)
+
+		supervision := core.RequireRole(core.ADMIN, core.SUPERVISOR, core.COORDINADOR)
+		routes.GET("/estados", core.JWTAuthMiddleware(), supervision, camionRoutes.estadosController.ListarFlota)
+		routes.GET("/:id/estados", core.JWTAuthMiddleware(), supervision, camionRoutes.estadosController.Historial)
+		routes.GET("/estado/ruta/:ruta_id", core.JWTAuthMiddleware(), camionRoutes.estadosController.EstadoRuta)
 
 		routes.Use(core.JWTAuthMiddleware(), core.RequireRole(core.ADMIN, core.CONDUCTOR, core.SUPERVISOR, core.COORDINADOR))
 		routes.POST("/", camionRoutes.createCamionController.Run)

@@ -48,8 +48,26 @@ func NewFCMClient(credentialsFile string) (*FCMClient, error) {
 	return &FCMClient{client: client}, nil
 }
 
-// fcmMaxTokensPerRequest is the hard limit enforced by FCM for a single
-// MulticastMessage. Requests with more tokens must be split into batches.
+func (c *FCMClient) SendToTopic(ctx context.Context, topic string, notification *domain.PushNotification) error {
+	dataPayload := make(map[string]string, len(notification.Data)+1)
+	for key, value := range notification.Data {
+		dataPayload[key] = value
+	}
+	if notification.Type != "" {
+		dataPayload["notificationType"] = notification.Type
+	}
+
+	_, err := c.client.Send(ctx, &messaging.Message{
+		Topic: topic,
+		Notification: &messaging.Notification{
+			Title: notification.Title,
+			Body:  notification.Body,
+		},
+		Data: dataPayload,
+	})
+	return err
+}
+
 const fcmMaxTokensPerRequest = 500
 
 func (c *FCMClient) Send(ctx context.Context, userTokens map[string]string, notification *domain.PushNotification) (map[string]domain.SendResult, error) {

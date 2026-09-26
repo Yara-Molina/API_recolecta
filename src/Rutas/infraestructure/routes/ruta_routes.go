@@ -9,13 +9,14 @@ import (
 type RutaRoutes struct {
 	engine *gin.Engine
 
-	createController  *controllers.CreateRutaController
-	getAllController  *controllers.GetAllRutaController
-	getByIdController *controllers.GetRutaByIdController
-	updateController  *controllers.UpdateRutaController
-	deleteController  *controllers.DeleteRutaController
-	getActivas        *controllers.GetRutaActivasController
-	arrivalController *controllers.ProcessArrivalController // Controlador de arribos
+	createController    *controllers.CreateRutaController
+	getAllController    *controllers.GetAllRutaController
+	getByIdController   *controllers.GetRutaByIdController
+	updateController    *controllers.UpdateRutaController
+	deleteController    *controllers.DeleteRutaController
+	getActivas          *controllers.GetRutaActivasController
+	arrivalController   *controllers.ProcessArrivalController  // Controlador de arribos
+	proxy               *controllers.ApiRutasProxyController  // Reenvio a api_rutas
 }
 
 func NewRutaRoutes(
@@ -26,38 +27,40 @@ func NewRutaRoutes(
 	updateController *controllers.UpdateRutaController,
 	deleteController *controllers.DeleteRutaController,
 	getActivasController *controllers.GetRutaActivasController,
-	arrivalController *controllers.ProcessArrivalController, // Inyección de arribos
+	arrivalController *controllers.ProcessArrivalController,
+	proxy *controllers.ApiRutasProxyController,
 ) *RutaRoutes {
 	return &RutaRoutes{
 		engine: engine,
 
-		createController:  createController,
-		getAllController:  getAllController,
-		getByIdController: getByIdController,
-		updateController:  updateController,
-		deleteController:  deleteController,
-		getActivas:        getActivasController,
-		arrivalController: arrivalController,
+		createController:    createController,
+		getAllController:    getAllController,
+		getByIdController:   getByIdController,
+		updateController:    updateController,
+		deleteController:    deleteController,
+		getActivas:          getActivasController,
+		arrivalController:   arrivalController,
+		proxy:               proxy,
 	}
 }
 
 func (r *RutaRoutes) Run() {
 	routes := r.engine.Group("/api/rutas")
 	{
-		// Endpoint protegido para arribo a puntos (solo Conductores con dispositivo validado)
 		routes.POST("/arrival", core.JWTAuthMiddleware(), core.RequireRole(core.CONDUCTOR), core.DeviceValidationMiddleware(), r.arrivalController.Run)
 
-		// Lectura: cualquier JWT válido (ciudadano role_id=0 e empleados).
-		// Sin esto el mapa móvil del ciudadano no recibe geometría ni puede pintar el camión.
-		routes.GET("/", core.JWTAuthMiddleware(), r.getAllController.Run)
-		routes.GET("/activas", core.JWTAuthMiddleware(), r.getActivas.Run)
-		routes.GET("/:id", core.JWTAuthMiddleware(), r.getByIdController.Run)
+		routes.GET("/", core.JWTAuthMiddleware(), r.proxy.Forward(controllers.RutasColeccion))
+		routes.GET("/activas", core.JWTAuthMiddleware(), r.proxy.Forward(controllers.RutasActivas))
+		routes.GET("/:id", core.JWTAuthMiddleware(), r.proxy.Forward(controllers.RutaPorID))
 
-		// Escritura: solo personal operativo.
 		write := routes.Group("")
 		write.Use(core.JWTAuthMiddleware(), core.RequireRole(core.ADMIN, core.CONDUCTOR, core.SUPERVISOR, core.COORDINADOR))
-		write.POST("/", r.createController.Run)
-		write.PUT("/:id", r.updateController.Run)
-		write.DELETE("/:id", r.deleteController.Run)
+		write.POST("/", r.proxy.Forward(controllers.RutasColeccion))
+		write.PUT("/:id", r.proxy.Forward(controllers.RutaPorID))
+		write.DELETE("/:id", r.proxy.Forward(controllers.RutaPorID))
+
+		write.POST("/preview", r.proxy.Forward(controllers.OptimizarPreview))
+
+		write.POST("/:id/optimizar", r.proxy.Forward(controllers.OptimizarRuta))
 	}
 }

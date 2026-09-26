@@ -15,6 +15,7 @@ type PuntoRecoleccionRoutes struct {
 	getByRutaController *controllers.GetPuntoRecoleccionByRutaController
 	updateController    *controllers.UpdatePuntoRecoleccionController
 	deleteController    *controllers.DeletePuntoRecoleccionController
+	proxy               *controllers.ApiRutasProxyController
 }
 
 func NewPuntoRecoleccionRoutes(
@@ -25,6 +26,7 @@ func NewPuntoRecoleccionRoutes(
 	getByRutaController *controllers.GetPuntoRecoleccionByRutaController,
 	updateController *controllers.UpdatePuntoRecoleccionController,
 	deleteController *controllers.DeletePuntoRecoleccionController,
+	proxy *controllers.ApiRutasProxyController,
 ) *PuntoRecoleccionRoutes {
 	return &PuntoRecoleccionRoutes{
 		engine:              engine,
@@ -34,6 +36,7 @@ func NewPuntoRecoleccionRoutes(
 		getByRutaController: getByRutaController,
 		updateController:    updateController,
 		deleteController:    deleteController,
+		proxy:               proxy,
 	}
 }
 
@@ -41,11 +44,11 @@ func (r *PuntoRecoleccionRoutes) Run() {
 	routes := r.engine.Group("/api/puntos-recoleccion")
 	routes.Use(core.JWTAuthMiddleware(), core.RequireRole(core.ADMIN, core.CONDUCTOR, core.SUPERVISOR, core.COORDINADOR))
 	{
-		routes.POST("/", r.createController.Run)
-		routes.GET("/", r.getAllController.Run)
-		routes.GET("/:id", r.getByIdController.Run)
-		routes.GET("/ruta/:rutaId", r.getByRutaController.Run)
-		routes.PUT("/:id", r.updateController.Run)
-		routes.DELETE("/:id", r.deleteController.Run)
+		routes.POST("/", r.proxy.Forward(controllers.PuntosColeccion))
+		routes.GET("/", r.proxy.Forward(controllers.PuntosColeccion))
+		routes.GET("/:id", r.proxy.Forward(controllers.PuntoPorID))
+		routes.GET("/ruta/:rutaId", r.proxy.Forward(controllers.PuntosPorRuta))
+		routes.PUT("/:id", r.proxy.Forward(controllers.PuntoPorID))
+		routes.DELETE("/:id", r.proxy.Forward(controllers.PuntoPorID))
 	}
 }
